@@ -24,10 +24,10 @@
 </script>
 
 <svelte:head>
-  <title>CoinFi Wallet</title>
+  <title>CoinFi</title>
   <meta
     name="description"
-    content="Unlimited self-custodial wallet secured by passkeys"
+    content="∞ self-custodial wallet secured by passkeys"
   />
 </svelte:head>
 
