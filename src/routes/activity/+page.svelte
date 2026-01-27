@@ -9,7 +9,7 @@
     RefreshCw,
     Loader2,
   } from "lucide-svelte"
-  import MobileWrapper from "$lib/components/layout/MobileWrapper.svelte"
+
   import {
     walletStore,
     GLOBAL_NETWORK,
@@ -99,7 +99,7 @@
   )
 </script>
 
-<MobileWrapper class="bg-zinc-950">
+<div class="min-h-full bg-zinc-950">
   <header
     class="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-xl border-b border-white/5 pt-6 pb-2 px-6"
   >
@@ -231,4 +231,4 @@
       </div>
     {/if}
   </main>
-</MobileWrapper>
+</div>

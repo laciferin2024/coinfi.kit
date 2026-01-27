@@ -16,10 +16,11 @@
   ]
 </script>
 
+<!-- Bottom nav - no fixed positioning, relies on parent flexbox -->
 <nav
-  class="fixed bottom-0 left-0 right-0 bg-zinc-950/95 backdrop-blur-xl border-t border-white/5 z-50"
+  class="bg-zinc-950/95 backdrop-blur-xl border-t border-white/5 z-50 shrink-0 rounded-b-[2.5rem]"
 >
-  <div class="flex justify-around items-center h-16 max-w-[430px] mx-auto">
+  <div class="flex justify-around items-center h-16">
     {#each navItems as item}
       <a
         href={item.href}

@@ -62,14 +62,17 @@
       >
         <!-- Screen Content -->
         <div
-          class="absolute inset-[3px] bg-black rounded-[2.7rem] overflow-hidden"
+          class="absolute inset-[3px] bg-black rounded-[2.7rem] overflow-hidden flex flex-col"
         >
-          <div class="w-full h-full overflow-auto">
+          <!-- Scrollable page content -->
+          <div class="flex-1 overflow-auto">
             {@render children()}
-            {#if showNav}
-              <Nav />
-            {/if}
           </div>
+
+          <!-- Fixed bottom nav inside the phone frame -->
+          {#if showNav}
+            <Nav />
+          {/if}
         </div>
       </div>
     </div>

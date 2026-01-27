@@ -3,7 +3,7 @@
   import { goto } from "$app/navigation"
   import { browser } from "$app/environment"
   import { Search, ShieldCheck, TrendingUp, Globe, Clock } from "lucide-svelte"
-  import MobileWrapper from "$lib/components/layout/MobileWrapper.svelte"
+
   import { walletStore } from "$lib/stores/wallet"
   import type { Protocol } from "$lib/types"
 
@@ -161,7 +161,7 @@
   }
 </script>
 
-<MobileWrapper>
+<div class="min-h-full">
   <div class="max-w-7xl mx-auto px-4">
     <header
       class="sticky top-0 z-30 py-6 bg-black/90 backdrop-blur-xl border-b border-white/5"
@@ -300,4 +300,4 @@
       </section>
     </main>
   </div>
-</MobileWrapper>
+</div>

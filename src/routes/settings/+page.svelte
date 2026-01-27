@@ -14,7 +14,6 @@
     Trash2,
     UserPlus,
   } from "lucide-svelte"
-  import MobileWrapper from "$lib/components/layout/MobileWrapper.svelte"
   import NetworkSelector from "$lib/components/ui/NetworkSelector.svelte"
   import { walletStore } from "$lib/stores/wallet"
 
@@ -67,7 +66,7 @@
   }
 </script>
 
-<MobileWrapper class="bg-zinc-950">
+<div class="min-h-full bg-zinc-950">
   <header
     class="px-6 py-6 border-b border-white/5 flex justify-between items-center bg-zinc-950/90 backdrop-blur-xl sticky top-0 z-30"
   >
@@ -317,4 +316,4 @@
       </p>
     </footer>
   </main>
-</MobileWrapper>
+</div>
