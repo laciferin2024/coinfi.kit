@@ -7,115 +7,12 @@
   import { walletStore } from "$lib/stores/wallet"
   import type { Protocol } from "$lib/types"
 
+  import { DAPPS } from "$lib/data/dapps"
+  import DAppDetailModal from "$lib/components/dapps/DAppDetailModal.svelte"
+
   let searchQuery = $state("")
   let activeTab = $state("All")
-
-  const DAPPS: Protocol[] = [
-    {
-      id: "uniswap",
-      name: "Uniswap V3",
-      category: "DeFi",
-      icon: "🦄",
-      users: "1.2M",
-      verified: true,
-      desc: "Swap tokens and provide liquidity securely across 8+ chains.",
-      networks: ["ethereum", "base", "polygon", "optimism"],
-      auditStatus: "safe",
-      url: "https://app.uniswap.org",
-      domain: "app.uniswap.org",
-    },
-    {
-      id: "curve",
-      name: "Curve Finance",
-      category: "DeFi",
-      icon: "🌀",
-      users: "800K",
-      verified: true,
-      desc: "Efficient stablecoin swapping and deep liquidity pools.",
-      networks: ["ethereum", "base", "polygon"],
-      auditStatus: "safe",
-      url: "https://curve.fi",
-      domain: "curve.fi",
-    },
-    {
-      id: "lido",
-      name: "Lido Finance",
-      category: "Staking",
-      icon: "🌊",
-      users: "890K",
-      verified: true,
-      desc: "Liquid staking for Ethereum. Stake ETH and receive stETH.",
-      networks: ["ethereum"],
-      auditStatus: "safe",
-      url: "https://stake.lido.fi",
-      domain: "stake.lido.fi",
-    },
-    {
-      id: "1inch",
-      name: "1inch Network",
-      category: "DeFi",
-      icon: "🔄",
-      users: "1.5M",
-      verified: true,
-      desc: "DEX aggregator providing the best rates across the ecosystem.",
-      networks: ["ethereum", "base", "polygon", "optimism"],
-      auditStatus: "safe",
-      url: "https://app.1inch.io",
-      domain: "app.1inch.io",
-    },
-    {
-      id: "aave",
-      name: "Aave",
-      category: "DeFi",
-      icon: "👻",
-      users: "450K",
-      verified: true,
-      desc: "Non-custodial liquidity protocol to earn interest and borrow assets.",
-      networks: ["ethereum", "base", "polygon", "optimism"],
-      auditStatus: "safe",
-      url: "https://app.aave.com",
-      domain: "app.aave.com",
-    },
-    {
-      id: "opensea",
-      name: "OpenSea",
-      category: "NFTs",
-      icon: "⛵",
-      users: "2.1M",
-      verified: false,
-      desc: "Discover, collect, and sell extraordinary NFTs.",
-      networks: ["ethereum", "polygon", "base"],
-      auditStatus: "caution",
-      url: "https://opensea.io",
-      domain: "opensea.io",
-    },
-    {
-      id: "ens",
-      name: "ENS Domains",
-      category: "Social",
-      icon: "🆔",
-      users: "2.5M",
-      verified: true,
-      desc: "Decentralized naming for wallets, websites, and more.",
-      networks: ["ethereum"],
-      auditStatus: "safe",
-      url: "https://app.ens.domains",
-      domain: "app.ens.domains",
-    },
-    {
-      id: "farcaster",
-      name: "Farcaster",
-      category: "Social",
-      icon: "🟣",
-      users: "150K",
-      verified: true,
-      desc: "Sufficiently decentralized social network built on Base.",
-      networks: ["base"],
-      auditStatus: "safe",
-      url: "https://warpcast.com",
-      domain: "warpcast.com",
-    },
-  ]
+  let selectedDapp = $state<Protocol | null>(null)
 
   const categories = ["All", "DeFi", "NFTs", "Social", "Staking"]
 
@@ -146,8 +43,7 @@
   )
 
   function openDapp(dapp: Protocol) {
-    walletStore.openDAppBrowser(dapp.id)
-    window.open(dapp.url, "_blank")
+    selectedDapp = dapp
   }
 
   function formatTimeAgo(timestamp: number): string {
@@ -160,6 +56,13 @@
     return `${days}d ago`
   }
 </script>
+
+{#if selectedDapp}
+  <DAppDetailModal
+    protocol={selectedDapp}
+    onClose={() => (selectedDapp = null)}
+  />
+{/if}
 
 <div class="min-h-full">
   <div class="max-w-7xl mx-auto px-4">

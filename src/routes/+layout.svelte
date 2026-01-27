@@ -4,6 +4,8 @@
   import Nav from "$lib/components/layout/nav.svelte"
   import { walletStore } from "$lib/stores/wallet"
   import type { Snippet } from "svelte"
+  import DAppBrowser from "$lib/components/dapps/DAppBrowser.svelte"
+  import { DAPPS } from "$lib/data/dapps"
 
   interface Props {
     children: Snippet
@@ -72,6 +74,16 @@
           <!-- Fixed bottom nav inside the phone frame -->
           {#if showNav}
             <Nav />
+          {/if}
+
+          {#if $walletStore.activeBrowserDAppId}
+            {@const activeDapp =
+              $walletStore.activeBrowserDAppId === "custom"
+                ? $walletStore.activeCustomDApp
+                : DAPPS.find((d) => d.id === $walletStore.activeBrowserDAppId)}
+            {#if activeDapp}
+              <DAppBrowser dapp={activeDapp} />
+            {/if}
           {/if}
         </div>
       </div>

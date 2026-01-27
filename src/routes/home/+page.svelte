@@ -14,6 +14,10 @@
   import NetworkSelector from "$lib/components/ui/NetworkSelector.svelte"
   import HyperToggle from "$lib/components/ui/HyperToggle.svelte"
   import ImportAssetModal from "$lib/components/ui/ImportAssetModal.svelte"
+  import TokenDetailModal from "$lib/components/ui/TokenDetailModal.svelte"
+  import SendModal from "$lib/components/ui/SendModal.svelte"
+  import ReceiveModal from "$lib/components/ui/ReceiveModal.svelte"
+  import type { TokenAsset } from "$lib/types"
   import {
     walletStore,
     activeNetwork,
@@ -27,6 +31,23 @@
   let copied = $state(false)
   let activeTab = $state<"tokens" | "nfts">("tokens")
   let isImportModalOpen = $state(false)
+  let selectedToken = $state<TokenAsset | null>(null)
+  let isTokenDetailOpen = $state(false)
+  let isSendModalOpen = $state(false)
+  let isReceiveModalOpen = $state(false)
+
+  function openTokenDetail(token: TokenAsset) {
+    selectedToken = token
+    isTokenDetailOpen = true
+  }
+
+  function openSendModal() {
+    isSendModalOpen = true
+  }
+
+  function openReceiveModal() {
+    isReceiveModalOpen = true
+  }
 
   onMount(() => {
     if (browser) {
@@ -189,6 +210,7 @@
           {:else}
             {#each $filteredTokens as token}
               <div
+                onclick={() => openTokenDetail(token)}
                 class="p-4 rounded-[2rem] bg-zinc-900/50 border border-white/5 flex items-center justify-between hover:bg-zinc-900 transition-colors cursor-pointer"
               >
                 <div class="flex items-center gap-4">
@@ -267,4 +289,24 @@
 <ImportAssetModal
   isOpen={isImportModalOpen}
   onClose={() => (isImportModalOpen = false)}
+/>
+
+<TokenDetailModal
+  token={selectedToken}
+  isOpen={isTokenDetailOpen}
+  onClose={() => (isTokenDetailOpen = false)}
+  onSend={openSendModal}
+  onReceive={openReceiveModal}
+/>
+
+<SendModal
+  token={selectedToken}
+  isOpen={isSendModalOpen}
+  onClose={() => (isSendModalOpen = false)}
+/>
+
+<ReceiveModal
+  token={selectedToken}
+  isOpen={isReceiveModalOpen}
+  onClose={() => (isReceiveModalOpen = false)}
 />
