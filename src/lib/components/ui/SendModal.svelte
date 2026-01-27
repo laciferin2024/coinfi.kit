@@ -9,6 +9,7 @@
   } from "lucide-svelte"
   import { walletStore, activeNetwork } from "$lib/stores/wallet"
   import type { TokenAsset } from "$lib/types"
+  import GuardConsole from "./GuardConsole.svelte"
 
   interface Props {
     isOpen: boolean
@@ -21,6 +22,7 @@
   let recipientAddress = $state("")
   let amount = $state("")
   let isLoading = $state(false)
+  let isSimulating = $state(false)
   let error = $state("")
   let success = $state(false)
   let showContacts = $state(false)
@@ -49,33 +51,40 @@
 
     isLoading = true
     error = ""
+    isSimulating = true
 
     try {
-      // Simulate transaction
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // Add activity
-      walletStore.addActivity({
-        id: `tx-${Date.now()}`,
-        type: "send",
-        amount: amount,
-        symbol: token.symbol,
-        address: recipientAddress,
-        timestamp: Date.now(),
-        status: "completed",
-        network: $activeNetwork.name,
-        chainId: $activeNetwork.chainId,
-      })
-
-      success = true
-      setTimeout(() => {
-        handleClose()
-      }, 2000)
+      // Simulation will be handled by GuardConsole
+      // After simulation completes, we'll finalize
     } catch (e) {
       error = "Transaction failed. Please try again."
-    } finally {
       isLoading = false
+      isSimulating = false
     }
+  }
+
+  function handleSimulationComplete() {
+    isSimulating = false
+
+    // Add activity
+    walletStore.addActivity({
+      id: `tx-${Date.now()}`,
+      type: "send",
+      amount: amount,
+      symbol: token!.symbol,
+      address: recipientAddress,
+      timestamp: Date.now(),
+      status: "completed",
+      network: $activeNetwork.name,
+      chainId: $activeNetwork.chainId,
+    })
+
+    success = true
+    isLoading = false
+
+    setTimeout(() => {
+      handleClose()
+    }, 2000)
   }
 
   function selectContact(address: string) {
@@ -134,6 +143,25 @@
           <CheckCircle class="w-16 h-16 text-emerald-400 mx-auto" />
           <p class="text-lg font-bold text-white">Transaction Sent!</p>
           <p class="text-sm text-zinc-400">Your {token.symbol} is on its way</p>
+        </div>
+      {:else if isSimulating}
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3
+              class="text-[10px] font-black uppercase text-zinc-500 tracking-widest"
+            >
+              AI Guard Simulation
+            </h3>
+            <div
+              class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[8px] font-black uppercase"
+            >
+              <span
+                class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
+              ></span>
+              Active
+            </div>
+          </div>
+          <GuardConsole onComplete={handleSimulationComplete} />
         </div>
       {:else}
         <!-- Balance Display -->

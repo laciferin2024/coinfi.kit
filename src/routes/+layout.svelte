@@ -6,6 +6,7 @@
   import type { Snippet } from "svelte"
   import DAppBrowser from "$lib/components/dapps/DAppBrowser.svelte"
   import { DAPPS } from "$lib/data/dapps"
+  import AIGuardModal from "$lib/components/ui/AIGuardModal.svelte"
 
   interface Props {
     children: Snippet
@@ -84,6 +85,10 @@
             {#if activeDapp}
               <DAppBrowser dapp={activeDapp} />
             {/if}
+          {/if}
+
+          {#if $walletStore.externalRequest}
+            <AIGuardModal onClose={() => {}} />
           {/if}
         </div>
       </div>
