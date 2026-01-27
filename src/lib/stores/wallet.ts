@@ -213,10 +213,30 @@ function createWalletStore() {
     unlockWallet: async (): Promise<boolean> => {
       const storedAddress = safeGetItem('wallet_address');
       const tempMnemonic = safeGetItem('wallet_temp_mnemonic');
+      const credId = safeGetItem('wallet_credential_id');
+      const deviceKey = safeGetItem('wallet_device_key');
 
       if (!storedAddress) return false;
 
       try {
+        // Try passkey authentication first if available
+        if (credId && deviceKey) {
+          const { authenticatePasskey, decryptPrivPayload } = await import('$lib/utils/crypto-utils');
+          const result = await authenticatePasskey(credId);
+          if (result.success && result.payloadB64) {
+            const privateKeyHex = await decryptPrivPayload(deviceKey, result.payloadB64);
+            update(s => ({
+              ...s,
+              privateKey: '0x' + privateKeyHex,
+              isLocked: false,
+              lastActive: new Date(),
+              mnemonic: tempMnemonic
+            }));
+            return true;
+          }
+        }
+
+        // Fall back to mnemonic
         if (tempMnemonic) {
           const { Wallet } = await import('ethers');
           const wallet = Wallet.fromPhrase(tempMnemonic);
