@@ -12,6 +12,7 @@
   } from "lucide-svelte"
   import { walletStore, NETWORKS } from "$lib/stores/wallet"
   import Button from "$lib/components/ui/Button.svelte"
+  import DAppIcon from "$lib/components/ui/DAppIcon.svelte"
 
   interface Props {
     dapp: {
@@ -253,15 +254,7 @@
       : 'bg-zinc-900/95 border-white/10'}"
   >
     <div class="flex items-center gap-4">
-      <div
-        class="w-9 h-9 rounded-xl bg-black flex items-center justify-center border border-white/10 shadow-inner overflow-hidden"
-      >
-        <img
-          src="/logo.png"
-          class="w-full h-full object-contain p-1.5"
-          alt="CoinFi Logo"
-        />
-      </div>
+      <DAppIcon src={dapp.icon} name={dapp.name} size="sm" />
       <div>
         <p
           class="text-[10px] font-black text-white uppercase tracking-tight italic"

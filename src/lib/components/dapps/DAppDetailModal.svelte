@@ -3,6 +3,7 @@
   import { walletStore, NETWORKS } from "$lib/stores/wallet"
   import type { Protocol } from "$lib/types"
   import Button from "$lib/components/ui/Button.svelte"
+  import DAppIcon from "$lib/components/ui/DAppIcon.svelte"
 
   interface Props {
     protocol: Protocol
@@ -34,12 +35,13 @@
     <!-- Header -->
     <div class="p-8 pb-0 text-center">
       <div class="flex flex-col items-center gap-4">
-        <div
-          class="w-24 h-24 rounded-[2rem] bg-zinc-900 border border-white/5 flex items-center justify-center text-4xl shadow-[0_0_30px_-5px_var(--color-orange-500)]"
+        <DAppIcon
+          src={protocol.icon}
+          name={protocol.name}
+          size="xl"
+          class="shadow-[0_0_30px_-5px_var(--color-orange-500)]"
           style="--color-orange-500: #f97316"
-        >
-          {protocol.icon}
-        </div>
+        />
         <div class="space-y-1">
           <h2
             class="text-2xl font-black italic uppercase tracking-tighter text-white"

@@ -9,6 +9,7 @@
 
   import { DAPPS } from "$lib/data/dapps"
   import DAppDetailModal from "$lib/components/dapps/DAppDetailModal.svelte"
+  import DAppIcon from "$lib/components/ui/DAppIcon.svelte"
 
   let searchQuery = $state("")
   let activeTab = $state("All")
@@ -130,9 +131,13 @@
                   class="flex flex-col items-center gap-2 shrink-0 group"
                 >
                   <div
-                    class="w-16 h-16 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-3xl group-hover:scale-105 transition-transform duration-300"
+                    class="group-hover:scale-105 transition-transform duration-300 shadow-glow"
                   >
-                    {fullDapp.icon}
+                    <DAppIcon
+                      src={fullDapp.icon}
+                      name={fullDapp.name}
+                      size="lg"
+                    />
                   </div>
                   <span
                     class="text-[10px] font-bold text-zinc-300 truncate w-16 text-center"
@@ -171,9 +176,9 @@
                 : 'bg-zinc-900 border-white/5 hover:bg-zinc-800'}"
             >
               <div
-                class="w-16 h-16 rounded-[1.5rem] bg-zinc-950 flex items-center justify-center text-3xl shadow-inner border border-white/10 group-hover:scale-110 transition-transform"
+                class="group-hover:scale-110 transition-transform shadow-glow"
               >
-                {dapp.icon}
+                <DAppIcon src={dapp.icon} name={dapp.name} size="lg" />
               </div>
               <div class="flex-1 space-y-1 overflow-hidden">
                 <div class="flex items-center justify-between">

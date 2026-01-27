@@ -11,7 +11,9 @@
   import { walletStore } from "$lib/stores/wallet"
   import GuardConsole from "./GuardConsole.svelte"
   import Button from "./Button.svelte"
+  import DAppIcon from "./DAppIcon.svelte"
   import { fly } from "svelte/transition"
+  import { DAPPS } from "$lib/data/dapps"
 
   interface Props {
     onClose: () => void
@@ -20,6 +22,10 @@
   let { onClose }: Props = $props()
 
   let request = $derived($walletStore.externalRequest)
+  let activeDapp = $derived(
+    DAPPS.find((d) => d.domain === request?.origin) ||
+      $walletStore.connectedDapps.find((d) => d.domain === request?.origin),
+  )
   let status = $state<"simulating" | "ready" | "approving" | "success">(
     "simulating",
   )
@@ -69,11 +75,12 @@
       <div class="p-8 pb-4 border-b border-white/5 space-y-4 shrink-0">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div
-              class="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-2xl shadow-lg"
-            >
-              🌐
-            </div>
+            <DAppIcon
+              src={activeDapp?.icon ||
+                `https://www.google.com/s2/favicons?domain=${request?.origin}&sz=128`}
+              name={activeDapp?.name || request?.origin || "DApp"}
+              size="md"
+            />
             <div>
               <h2
                 class="text-xl font-black italic uppercase tracking-tighter text-white"
