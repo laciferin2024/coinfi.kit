@@ -1,6 +1,18 @@
 <script lang="ts">
-  import { X, Loader2, Search, Coins, CheckCircle } from "lucide-svelte"
-  import { walletStore, NETWORKS, activeNetwork } from "$lib/stores/wallet"
+  import {
+    X,
+    Loader2,
+    Search,
+    Coins,
+    CheckCircle,
+    ChevronDown,
+  } from "lucide-svelte"
+  import {
+    walletStore,
+    NETWORKS,
+    activeNetwork,
+    GLOBAL_NETWORK,
+  } from "$lib/stores/wallet"
 
   interface Props {
     isOpen: boolean
@@ -19,39 +31,18 @@
   } | null>(null)
   let success = $state(false)
 
-  // Popular tokens to quick-add
-  const POPULAR_TOKENS = [
-    {
-      symbol: "USDC",
-      name: "USD Coin",
-      icon: "💵",
-      address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    },
-    {
-      symbol: "USDT",
-      name: "Tether",
-      icon: "💲",
-      address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    },
-    {
-      symbol: "WETH",
-      name: "Wrapped Ether",
-      icon: "⟠",
-      address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-    },
-    {
-      symbol: "DAI",
-      name: "Dai Stablecoin",
-      icon: "🔶",
-      address: "0x6B175474E89094C44Da98b954EescdeCB5BAA3d7",
-    },
-    {
-      symbol: "LINK",
-      name: "Chainlink",
-      icon: "🔗",
-      address: "0x514910771AF9Ca656af840dff83E8264EcF986CA",
-    },
-  ]
+  let selectedNetworkId = $state(
+    $activeNetwork.id === GLOBAL_NETWORK.id
+      ? NETWORKS[0].id
+      : $activeNetwork.id,
+  )
+  let isNetworkSelectorOpen = $state(false)
+
+  const eligibleNetworks = NETWORKS
+  let selectedNetwork = $derived(
+    eligibleNetworks.find((n) => n.id === selectedNetworkId) ||
+      eligibleNetworks[0],
+  )
 
   async function lookupToken() {
     if (!contractAddress || contractAddress.length < 42) {
@@ -95,7 +86,7 @@
         name: token.name,
         icon: token.icon || "🪙",
         address: token.address,
-        network: $activeNetwork.name,
+        network: selectedNetwork.name,
         balance: "0",
         totalValueUsd: 0,
       })
@@ -157,14 +148,59 @@
           <p class="text-lg font-bold text-white">Token Added!</p>
         </div>
       {:else}
-        <!-- Network Info -->
-        <div
-          class="flex items-center gap-2 px-4 py-3 rounded-xl bg-zinc-800/50 border border-white/5"
-        >
-          <span class="text-lg">{$activeNetwork.icon}</span>
-          <span class="text-sm text-zinc-400"
-            >Adding to {$activeNetwork.name}</span
+        <!-- Network Selector -->
+        <div class="space-y-2">
+          <label
+            class="text-[10px] font-bold uppercase tracking-widest text-zinc-500"
           >
+            Destination Network
+          </label>
+          <div class="relative">
+            <button
+              onclick={() => (isNetworkSelectorOpen = !isNetworkSelectorOpen)}
+              class="w-full flex items-center justify-between px-4 py-3 bg-zinc-800 border border-white/10 rounded-xl hover:bg-zinc-700/50 transition-colors"
+            >
+              <div class="flex items-center gap-2">
+                <span class="text-lg">{selectedNetwork.icon}</span>
+                <span class="text-sm text-white font-bold"
+                  >{selectedNetwork.name}</span
+                >
+              </div>
+              <ChevronDown
+                class="w-4 h-4 text-zinc-500 transition-transform {isNetworkSelectorOpen
+                  ? 'rotate-180'
+                  : ''}"
+              />
+            </button>
+
+            {#if isNetworkSelectorOpen}
+              <div
+                class="absolute top-full left-0 right-0 mt-2 bg-zinc-800 border border-white/10 rounded-xl overflow-hidden z-10 shadow-xl"
+              >
+                {#each eligibleNetworks as net}
+                  <button
+                    onclick={() => {
+                      selectedNetworkId = net.id
+                      isNetworkSelectorOpen = false
+                    }}
+                    class="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-700 transition-colors {selectedNetworkId ===
+                    net.id
+                      ? 'bg-orange-500/10'
+                      : ''}"
+                  >
+                    <span class="text-lg">{net.icon}</span>
+                    <span
+                      class="text-sm font-bold {selectedNetworkId === net.id
+                        ? 'text-orange-500'
+                        : 'text-zinc-300'}"
+                    >
+                      {net.name}
+                    </span>
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
         </div>
 
         <!-- Contract Address Input -->
@@ -232,29 +268,6 @@
             </button>
           </div>
         {/if}
-
-        <!-- Popular Tokens -->
-        <div class="space-y-3">
-          <h3
-            class="text-[10px] font-bold uppercase tracking-widest text-zinc-500"
-          >
-            Popular Tokens
-          </h3>
-          <div class="grid grid-cols-2 gap-2">
-            {#each POPULAR_TOKENS.slice(0, 4) as token}
-              <button
-                onclick={() => importToken(token)}
-                class="p-3 rounded-xl bg-zinc-800 border border-white/5 hover:border-orange-500/30 hover:bg-zinc-700 transition-colors flex items-center gap-2"
-              >
-                <span class="text-xl">{token.icon}</span>
-                <div class="text-left">
-                  <p class="text-sm font-bold text-white">{token.symbol}</p>
-                  <p class="text-[9px] text-zinc-500">{token.name}</p>
-                </div>
-              </button>
-            {/each}
-          </div>
-        </div>
       {/if}
     </div>
   </div>
