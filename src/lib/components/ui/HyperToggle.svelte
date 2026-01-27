@@ -3,23 +3,24 @@
   import { Zap } from "lucide-svelte"
 </script>
 
-{#if $walletStore.isHyperMode}
+<!-- Pill-shaped toggle switch with zap icon knob -->
+<button
+  onclick={() => walletStore.setHyperMode(!$walletStore.isHyperMode)}
+  class="relative w-14 h-7 rounded-full transition-all duration-300 {$walletStore.isHyperMode
+    ? 'bg-orange-600 shadow-lg shadow-orange-500/40'
+    : 'bg-zinc-800 border border-white/10'}"
+  aria-label="Toggle Hyper Mode"
+>
+  <!-- Sliding knob with zap icon -->
   <div
-    class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/20"
+    class="absolute top-0.5 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 {$walletStore.isHyperMode
+      ? 'left-[calc(100%-1.625rem)] bg-white'
+      : 'left-0.5 bg-zinc-700'}"
   >
-    <Zap class="w-3.5 h-3.5 text-orange-500 fill-current" />
-    <span class="text-[9px] font-black uppercase tracking-wider text-orange-500"
-      >HYPER</span
-    >
+    <Zap
+      class="w-3.5 h-3.5 {$walletStore.isHyperMode
+        ? 'text-orange-600 fill-orange-600'
+        : 'text-zinc-500'}"
+    />
   </div>
-{:else}
-  <button
-    onclick={() => walletStore.setHyperMode(true)}
-    class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900 border border-white/5 hover:border-orange-500/30 transition-colors"
-  >
-    <Zap class="w-3.5 h-3.5 text-zinc-500" />
-    <span class="text-[9px] font-bold uppercase tracking-wider text-zinc-500"
-      >LITE</span
-    >
-  </button>
-{/if}
+</button>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte"
+  import { walletStore } from "$lib/stores/wallet"
 
   interface Props {
     children: Snippet
@@ -47,14 +48,33 @@
   <div
     class="min-h-screen w-full bg-black text-white relative overflow-hidden {className}"
   >
-    <!-- Subtle blue glow in corners -->
-    <div class="absolute inset-0 pointer-events-none overflow-hidden">
-      <div
-        class="absolute -bottom-32 -left-32 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px]"
-      ></div>
-      <div
-        class="absolute -bottom-32 -right-32 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px]"
-      ></div>
+    <!-- Reactive glow effect - Blue when lite mode, Orange when hyper mode -->
+    <div
+      class="absolute inset-0 pointer-events-none overflow-hidden transition-all duration-700"
+    >
+      {#if $walletStore.isHyperMode}
+        <!-- Orange Hyper Mode glow -->
+        <div
+          class="absolute -bottom-32 -left-32 w-80 h-80 bg-orange-600/20 rounded-full blur-[120px] animate-pulse"
+        ></div>
+        <div
+          class="absolute -bottom-32 -right-32 w-80 h-80 bg-orange-600/20 rounded-full blur-[120px] animate-pulse"
+        ></div>
+        <div
+          class="absolute -top-32 -left-32 w-64 h-64 bg-orange-500/10 rounded-full blur-[100px]"
+        ></div>
+        <div
+          class="absolute -top-32 -right-32 w-64 h-64 bg-orange-500/10 rounded-full blur-[100px]"
+        ></div>
+      {:else}
+        <!-- Blue Lite Mode glow -->
+        <div
+          class="absolute -bottom-32 -left-32 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px]"
+        ></div>
+        <div
+          class="absolute -bottom-32 -right-32 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px]"
+        ></div>
+      {/if}
     </div>
 
     <div class="max-w-[430px] mx-auto relative min-h-screen">

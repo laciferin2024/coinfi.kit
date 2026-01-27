@@ -98,13 +98,6 @@
         <NetworkSelector />
       </div>
       <div class="flex items-center gap-2">
-        {#if $walletStore.isHyperMode}
-          <div
-            class="bg-orange-600/20 text-orange-500 p-1.5 rounded-full border border-orange-500/20 animate-pulse"
-          >
-            <Zap class="w-3.5 h-3.5 fill-current" />
-          </div>
-        {/if}
         <HyperToggle />
       </div>
     </header>
