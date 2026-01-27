@@ -13,6 +13,7 @@
   } from "lucide-svelte"
   import NetworkSelector from "$lib/components/ui/NetworkSelector.svelte"
   import HyperToggle from "$lib/components/ui/HyperToggle.svelte"
+  import ImportAssetModal from "$lib/components/ui/ImportAssetModal.svelte"
   import {
     walletStore,
     activeNetwork,
@@ -25,6 +26,7 @@
   let isFetching = $state(false)
   let copied = $state(false)
   let activeTab = $state<"tokens" | "nfts">("tokens")
+  let isImportModalOpen = $state(false)
 
   onMount(() => {
     if (browser) {
@@ -167,6 +169,7 @@
           </button>
         </div>
         <button
+          onclick={() => (isImportModalOpen = true)}
           class="p-2.5 rounded-xl bg-zinc-900 border border-white/5 hover:bg-zinc-800 transition-colors"
         >
           <Plus class="w-4 h-4 text-zinc-400" />
@@ -260,3 +263,8 @@
     </div>
   </main>
 </div>
+
+<ImportAssetModal
+  isOpen={isImportModalOpen}
+  onClose={() => (isImportModalOpen = false)}
+/>

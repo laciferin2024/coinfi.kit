@@ -16,9 +16,11 @@ export interface TokenAsset {
   name: string;
   icon: string;
   balance: string;
-  priceUsd: number;
+  priceUsd?: number;
   totalValueUsd: number;
   network?: string;
+  address?: string;
+  isCustom?: boolean;
 }
 
 export interface NFTAsset {

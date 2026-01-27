@@ -302,6 +302,27 @@ function createWalletStore() {
     importToken: (token: TokenAsset) => update(s => ({ ...s, tokens: [...s.tokens, token] })),
     importNft: (nft: NFTAsset) => update(s => ({ ...s, nfts: [...s.nfts, nft] })),
 
+    addCustomToken: (data: { symbol: string; name: string; icon: string; address: string; network: string; balance: string; totalValueUsd: number }) => {
+      update(s => {
+        // Check if token already exists
+        const exists = s.tokens.some(t => t.address?.toLowerCase() === data.address.toLowerCase() && t.network === data.network);
+        if (exists) return s;
+
+        const newToken: TokenAsset = {
+          id: `${data.symbol.toLowerCase()}-${data.network.toLowerCase().replace(' ', '-')}`,
+          symbol: data.symbol,
+          name: data.name,
+          icon: data.icon,
+          address: data.address,
+          network: data.network,
+          balance: data.balance,
+          totalValueUsd: data.totalValueUsd,
+          isCustom: true
+        };
+        return { ...s, tokens: [...s.tokens, newToken] };
+      });
+    },
+
     // Transaction status
     setTxStatus: (status: TransactionStatus) => update(s => ({ ...s, txStatus: status })),
 
