@@ -1,165 +1,273 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
-  import { browser } from '$app/environment';
-  import { Copy, Plus, Settings } from 'lucide-svelte';
+  import { onMount } from "svelte"
+  import { goto } from "$app/navigation"
+  import { browser } from "$app/environment"
+  import {
+    Copy,
+    Check,
+    RefreshCw,
+    Zap,
+    Coins,
+    LayoutGrid,
+    Plus,
+  } from "lucide-svelte"
+  import MobileWrapper from "$lib/components/layout/MobileWrapper.svelte"
+  import NetworkSelector from "$lib/components/ui/NetworkSelector.svelte"
+  import HyperToggle from "$lib/components/ui/HyperToggle.svelte"
+  import {
+    walletStore,
+    activeNetwork,
+    filteredTokens,
+    filteredNfts,
+    displayedTotalUsd,
+  } from "$lib/stores/wallet"
+  import { fetchBalances, lookupAddressEns } from "$lib/utils/blockchain-utils"
 
-  let balance = '$1,264.86';
-  let address = '';
-  let selectedTab = 'tokens';
-  let selectedNetwork = 'all';
-
-  interface Token {
-    name: string;
-    symbol: string;
-    network: string;
-    balance: string;
-    usdValue: string;
-    icon: string;
-  }
-
-  const tokens: Token[] = [
-    {
-      name: 'USDC',
-      symbol: 'USDC',
-      network: 'Optimism Sepolia',
-      balance: '0.00',
-      usdValue: '$0',
-      icon: '💵'
-    },
-    {
-      name: 'WBTC',
-      symbol: 'WBTC',
-      network: 'Optimism Sepolia',
-      balance: '0.00',
-      usdValue: '$273',
-      icon: '₿'
-    }
-  ];
+  let isFetching = $state(false)
+  let copied = $state(false)
+  let activeTab = $state<"tokens" | "nfts">("tokens")
 
   onMount(() => {
     if (browser) {
-      const storedAddress = localStorage.getItem('wallet_address');
-      if (storedAddress) {
-        address = storedAddress;
-      }
-    }
-  });
+      const address = localStorage.getItem("wallet_address")
+      const onboarded = localStorage.getItem("wallet_onboarded_status")
 
-  function truncateAddress(addr: string): string {
-    if (!addr) return '';
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+      if (!address || onboarded !== "true") {
+        goto("/")
+        return
+      }
+
+      // Unlock wallet if needed
+      if ($walletStore.isLocked) {
+        walletStore.unlockWallet()
+      }
+
+      // Fetch initial balances
+      update()
+    }
+  })
+
+  async function update() {
+    if (!$walletStore.address) return
+    isFetching = true
+    try {
+      const chainId = $activeNetwork.chainId || 11155420
+      const [res, name] = await Promise.all([
+        fetchBalances($walletStore.address, chainId),
+        lookupAddressEns($walletStore.address),
+      ])
+      if (res) walletStore.updatePortfolio(res)
+      if (name) walletStore.setEnsName(name)
+    } catch (e) {
+      console.warn("[HomePage] Sync Error:", e)
+    } finally {
+      isFetching = false
+    }
   }
 
-  function copyAddress() {
-    if (browser && address) {
-      navigator.clipboard.writeText(address);
+  function handleCopy() {
+    if ($walletStore.address && browser) {
+      navigator.clipboard.writeText($walletStore.address)
+      copied = true
+      setTimeout(() => (copied = false), 1500)
     }
+  }
+
+  function truncateAddress(addr: string): string {
+    if (!addr) return ""
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
   }
 </script>
 
-<div class="min-h-screen bg-black text-white pb-20">
-  <!-- Header -->
-  <header class="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-lg">
-        💰
-      </div>
-      <select
-        class="bg-gray-900 text-gray-300 border border-gray-800 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-orange-500"
-        bind:value={selectedNetwork}
-      >
-        <option value="all">🌐 All Networks</option>
-        <option value="ethereum">Ethereum</option>
-        <option value="optimism">Optimism</option>
-        <option value="arbitrum">Arbitrum</option>
-        <option value="polygon">Polygon</option>
-      </select>
-    </div>
-    <button
-      class="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center hover:bg-gray-800 transition"
-      on:click={() => goto('/settings')}
+<MobileWrapper>
+  <div class="h-full flex flex-col relative">
+    <!-- Header -->
+    <header
+      class="sticky top-0 z-30 py-4 px-4 flex items-center justify-between bg-black/90 backdrop-blur-xl border-b border-white/5"
     >
-      <Settings class="w-4 h-4 text-gray-400" />
-    </button>
-  </header>
-
-  <!-- Balance Section -->
-  <div class="px-4 py-8 text-center">
-    <p class="text-gray-500 text-xs uppercase tracking-wider mb-2">Unified Portfolio Balance</p>
-    <h1 class="text-5xl font-bold mb-3">{balance}</h1>
-    <div class="flex items-center justify-center gap-2">
-      <span class="text-gray-400 text-sm">{truncateAddress(address)}</span>
-      <button
-        class="text-gray-400 hover:text-white transition"
-        on:click={copyAddress}
-      >
-        <Copy class="w-4 h-4" />
-      </button>
-      <button class="text-orange-500 hover:text-orange-400 transition text-lg">
-        🔄
-      </button>
-    </div>
-  </div>
-
-  <!-- Tabs -->
-  <div class="px-4 mb-4">
-    <div class="flex items-center justify-between">
-      <div class="flex gap-2">
-        <button
-          class="px-6 py-2 rounded-full transition font-medium text-sm"
-          class:bg-orange-500={selectedTab === 'tokens'}
-          class:text-white={selectedTab === 'tokens'}
-          class:bg-gray-900={selectedTab !== 'tokens'}
-          class:text-gray-400={selectedTab !== 'tokens'}
-          on:click={() => selectedTab = 'tokens'}
+      <div class="flex items-center gap-3">
+        <div
+          class="relative w-8 h-8 rounded-lg bg-zinc-950 flex items-center justify-center border border-white/10"
         >
-          🪙 TOKENS
-        </button>
-        <button
-          class="px-6 py-2 rounded-full transition font-medium text-sm"
-          class:bg-orange-500={selectedTab === 'nfts'}
-          class:text-white={selectedTab === 'nfts'}
-          class:bg-gray-900={selectedTab !== 'nfts'}
-          class:text-gray-400={selectedTab !== 'nfts'}
-          on:click={() => selectedTab = 'nfts'}
-        >
-          🖼️ NFTS
-        </button>
+          <img
+            src="/logo.png"
+            class="w-full h-full object-contain p-1"
+            alt="CoinFi Logo"
+          />
+        </div>
+        <NetworkSelector />
       </div>
-      <button class="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center hover:bg-gray-800 transition">
-        <Plus class="w-5 h-5 text-gray-400" />
-      </button>
-    </div>
-  </div>
+      <div class="flex items-center gap-2">
+        {#if $walletStore.isHyperMode}
+          <div
+            class="bg-orange-600/20 text-orange-500 p-1.5 rounded-full border border-orange-500/20 animate-pulse"
+          >
+            <Zap class="w-3.5 h-3.5 fill-current" />
+          </div>
+        {/if}
+        <HyperToggle />
+      </div>
+    </header>
 
-  <!-- Token List -->
-  <div class="px-4">
-    {#if selectedTab === 'tokens'}
-      <div class="space-y-2">
-        {#each tokens as token}
-          <button class="w-full bg-gray-900/50 hover:bg-gray-900 rounded-2xl p-4 flex items-center justify-between transition border border-transparent hover:border-gray-800">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-2xl">
-                {token.icon}
-              </div>
-              <div class="text-left">
-                <p class="font-semibold">{token.name}</p>
-                <p class="text-sm text-gray-500">{token.network}</p>
-              </div>
-            </div>
-            <div class="text-right">
-              <p class="font-semibold">{token.balance}</p>
-              <p class="text-sm text-orange-500">{token.usdValue}</p>
-            </div>
+    <!-- Main Content -->
+    <main class="flex-1 py-8 space-y-8 pb-24 px-4 overflow-auto">
+      <!-- Balance Section -->
+      <div class="text-center space-y-2 relative">
+        <p
+          class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500"
+        >
+          {$walletStore.activeNetworkId === "all"
+            ? "Unified Portfolio Balance"
+            : `${$activeNetwork.name} Assets`}
+        </p>
+        <h2 class="text-5xl font-black italic tracking-tighter text-white">
+          ${$displayedTotalUsd.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </h2>
+        <div class="flex justify-center items-center gap-2">
+          <button
+            onclick={handleCopy}
+            class="flex items-center gap-2 text-[10px] font-mono bg-zinc-900 hover:bg-zinc-800 px-3 py-1 rounded-full border border-white/5 transition-all {copied
+              ? 'text-emerald-400'
+              : 'text-zinc-400'}"
+          >
+            {$walletStore.ensName ||
+              truncateAddress($walletStore.address || "")}
+            {#if copied}
+              <Check class="w-3 h-3" />
+            {:else}
+              <Copy class="w-3 h-3" />
+            {/if}
           </button>
-        {/each}
+          <button
+            onclick={update}
+            disabled={isFetching}
+            class="p-1.5 rounded-full bg-zinc-900 border border-white/5 hover:border-orange-500/30 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw
+              class="w-3 h-3 text-orange-500 {isFetching ? 'animate-spin' : ''}"
+            />
+          </button>
+        </div>
       </div>
-    {:else}
-      <div class="text-center py-16 text-gray-500">
-        <p class="text-4xl mb-2">🖼️</p>
-        <p>No NFTs found</p>
+
+      <!-- Tabs -->
+      <div class="w-full relative">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex bg-zinc-900/50 border border-white/5 p-1 rounded-xl">
+            <button
+              onclick={() => (activeTab = "tokens")}
+              class="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase transition-colors {activeTab ===
+              'tokens'
+                ? 'bg-orange-600 text-white'
+                : 'text-zinc-500'}"
+            >
+              <Coins class="w-3.5 h-3.5" /> Tokens
+            </button>
+            <button
+              onclick={() => (activeTab = "nfts")}
+              class="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase transition-colors {activeTab ===
+              'nfts'
+                ? 'bg-orange-600 text-white'
+                : 'text-zinc-500'}"
+            >
+              <LayoutGrid class="w-3.5 h-3.5" /> NFTs
+            </button>
+          </div>
+          <button
+            class="p-2.5 rounded-xl bg-zinc-900 border border-white/5 hover:bg-zinc-800 transition-colors"
+          >
+            <Plus class="w-4 h-4 text-zinc-400" />
+          </button>
+        </div>
+
+        <!-- Token List -->
+        {#if activeTab === "tokens"}
+          <div class="space-y-3">
+            {#if !$filteredTokens || $filteredTokens.length === 0}
+              <div class="py-20 text-center space-y-4 opacity-30">
+                <Coins class="w-12 h-12 mx-auto" />
+                <p class="text-xs font-black uppercase tracking-widest">
+                  No assets discovered
+                </p>
+              </div>
+            {:else}
+              {#each $filteredTokens as token}
+                <div
+                  class="p-4 rounded-[2rem] bg-zinc-900/50 border border-white/5 flex items-center justify-between hover:bg-zinc-900 transition-colors cursor-pointer"
+                >
+                  <div class="flex items-center gap-4">
+                    <div
+                      class="w-12 h-12 rounded-2xl bg-zinc-950 flex items-center justify-center text-2xl shadow-inner border border-white/5"
+                    >
+                      {token.icon}
+                    </div>
+                    <div>
+                      <h4 class="font-bold text-sm text-white">
+                        {token.symbol}
+                      </h4>
+                      <p class="text-[10px] text-zinc-500 font-mono italic">
+                        {token.network}
+                      </p>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <p class="font-bold text-sm text-zinc-100">
+                      {Number(token.balance).toFixed(2)}
+                    </p>
+                    <p class="text-[10px] text-orange-500 font-black uppercase">
+                      ${(token.totalValueUsd || 0).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              {/each}
+            {/if}
+          </div>
+        {:else}
+          <!-- NFT Grid -->
+          <div class="grid grid-cols-2 gap-4">
+            {#if !$filteredNfts || $filteredNfts.length === 0}
+              <div class="col-span-2 py-20 text-center space-y-4 opacity-30">
+                <LayoutGrid class="w-12 h-12 mx-auto" />
+                <p class="text-xs font-black uppercase tracking-widest">
+                  No collectibles found
+                </p>
+              </div>
+            {:else}
+              {#each $filteredNfts as nft}
+                <div
+                  class="group relative rounded-[2rem] overflow-hidden bg-zinc-900 border border-white/5 shadow-lg"
+                >
+                  <img
+                    src={nft.image}
+                    alt={nft.name}
+                    class="w-full aspect-square object-cover transition-transform group-hover:scale-110"
+                  />
+                  <div
+                    class="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 to-transparent"
+                  >
+                    <p
+                      class="text-[10px] font-black uppercase text-white truncate"
+                    >
+                      {nft.name}
+                    </p>
+                    <p class="text-[8px] text-zinc-400 truncate">
+                      {nft.collection}
+                    </p>
+                  </div>
+                  <div
+                    class="absolute top-2 right-2 px-2 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[8px] font-black uppercase text-orange-500"
+                  >
+                    {nft.network.split(" ")[0]}
+                  </div>
+                </div>
+              {/each}
+            {/if}
+          </div>
+        {/if}
       </div>
-    {/if}
+    </main>
   </div>
-</div>
+</MobileWrapper>

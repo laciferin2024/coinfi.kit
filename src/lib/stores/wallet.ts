@@ -1,54 +1,481 @@
-import { writable } from 'svelte/store';
-import type { Writable } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
+import { browser } from '$app/environment';
+import type {
+  Network,
+  TokenAsset,
+  NFTAsset,
+  Activity,
+  Contact,
+  DAppSession,
+  CustomDApp,
+  TransactionStatus,
+  ExternalRequest
+} from '$lib/types';
 
-export interface WalletState {
-  address: string | null;
-  isOnboarded: boolean;
-  isLocked: boolean;
-  tempWallet?: {
-    address: string;
-    privateKey: string;
-  };
-  generateTempWallet: boolean;
-  commitOnboarding: boolean;
-  saveCloudBackup: boolean;
-  unlockWallet: boolean;
-  restoreFromCloud: boolean;
-}
-
-const initialState: WalletState = {
-  address: null,
-  isOnboarded: false,
-  isLocked: true,
-  generateTempWallet: false,
-  commitOnboarding: false,
-  saveCloudBackup: false,
-  unlockWallet: false,
-  restoreFromCloud: false,
+// Network Constants
+export const GLOBAL_NETWORK: Network = {
+  id: 'all',
+  name: 'All Networks',
+  icon: '🌐',
+  color: '#F97316',
+  chainId: 0
 };
 
+export const ACTIVE_NETWORK: Network = {
+  id: 'optimism-sepolia',
+  name: 'Optimism Sepolia',
+  icon: '🛡️',
+  color: '#FF0420',
+  chainId: 11155420
+};
+
+export const NETWORKS: Network[] = [
+  ACTIVE_NETWORK,
+  { id: 'ethereum-sepolia', name: 'Ethereum Sepolia', icon: '⟠', color: '#627EEA', chainId: 11155111 },
+  { id: 'base-sepolia', name: 'Base Sepolia', icon: '🔵', color: '#0052FF', chainId: 84532 },
+];
+
+const DEFAULT_CONTACTS: Contact[] = [
+  { name: 'Vitalik.eth', address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', initials: 'VB' },
+];
+
+// LocalStorage helpers
+function safeGetItem(key: string): string | null {
+  if (!browser) return null;
+  return localStorage.getItem(key);
+}
+
+function safeGetJSON<T>(key: string, defaultValue: T): T {
+  if (!browser) return defaultValue;
+  const item = localStorage.getItem(key);
+  if (!item) return defaultValue;
+  try {
+    return JSON.parse(item) as T;
+  } catch {
+    return defaultValue;
+  }
+}
+
+function safeSetItem(key: string, value: string): void {
+  if (browser) localStorage.setItem(key, value);
+}
+
+function safeSetJSON(key: string, value: unknown): void {
+  if (browser) localStorage.setItem(key, JSON.stringify(value));
+}
+
+// Wallet State Interface
+export interface WalletState {
+  version: string;
+  address: string | null;
+  ensName: string | null;
+  privateKey: string | null;
+  mnemonic: string | null;
+  credentialId: string | null;
+  isLocked: boolean;
+  isHyperMode: boolean;
+  isOnboarded: boolean;
+  tempWallet: { address: string; privateKey: string; mnemonic: string } | null;
+  activeNetworkId: string;
+  customNetworks: Network[];
+  nativeBalance: string;
+  totalUsdValue: number;
+  usdcBalance: string;
+  tokens: TokenAsset[];
+  nfts: NFTAsset[];
+  txStatus: TransactionStatus;
+  simulationLogs: Array<{ role: 'ai' | 'system'; content: string }>;
+  activities: Activity[];
+  contacts: Contact[];
+  lastActive: Date;
+  hasCloudBackup: boolean;
+  backupData: string | null;
+  lastBackupTimestamp: number | null;
+  recentDapps: Array<{ id: string; lastUsed: number }>;
+  connectedDapps: DAppSession[];
+  activeBrowserDAppId: string | null;
+  activeCustomDApp: CustomDApp | null;
+  externalRequest: ExternalRequest | null;
+}
+
+// Initial state
+function createInitialState(): WalletState {
+  return {
+    version: '2.9.5',
+    address: safeGetItem('wallet_address'),
+    ensName: null,
+    privateKey: null,
+    mnemonic: null,
+    credentialId: safeGetItem('wallet_credential_id'),
+    isLocked: true,
+    isHyperMode: safeGetItem('wallet_hyper_mode') === 'true',
+    isOnboarded: safeGetItem('wallet_onboarded_status') === 'true',
+    tempWallet: null,
+    activeNetworkId: safeGetItem('wallet_active_network_id') || GLOBAL_NETWORK.id,
+    customNetworks: safeGetJSON<Network[]>('wallet_custom_networks', []),
+    nativeBalance: '0.00',
+    usdcBalance: '0.00',
+    totalUsdValue: 0,
+    tokens: [],
+    nfts: [],
+    txStatus: 'idle',
+    simulationLogs: [],
+    activities: safeGetJSON<Activity[]>('wallet_activities', []),
+    contacts: safeGetJSON<Contact[]>('wallet_contacts', DEFAULT_CONTACTS),
+    lastActive: new Date(),
+    hasCloudBackup: safeGetItem('wallet_cloud_backup_active') === 'true',
+    backupData: safeGetItem('wallet_backup_payload'),
+    lastBackupTimestamp: safeGetItem('wallet_last_backup_time') ? parseInt(safeGetItem('wallet_last_backup_time')!) : null,
+    recentDapps: safeGetJSON<Array<{ id: string; lastUsed: number }>>('wallet_recent_dapps', []),
+    connectedDapps: safeGetJSON<DAppSession[]>('wallet_connected_dapps', []),
+    activeBrowserDAppId: null,
+    activeCustomDApp: null,
+    externalRequest: null,
+  };
+}
+
+// Create the store
 function createWalletStore() {
-  const { subscribe, set, update }: Writable<WalletState> = writable(initialState);
+  const { subscribe, set, update } = writable<WalletState>(createInitialState());
 
   return {
     subscribe,
-    setAddress: (address: string | null) => update(state => ({ ...state, address })),
-    setOnboarded: (isOnboarded: boolean) => update(state => ({ ...state, isOnboarded })),
-    setLocked: (isLocked: boolean) => update(state => ({ ...state, isLocked })),
-    setTempWallet: (tempWallet: { address: string; privateKey: string } | undefined) => 
-      update(state => ({ ...state, tempWallet })),
-    setGenerateTempWallet: (generateTempWallet: boolean) => 
-      update(state => ({ ...state, generateTempWallet })),
-    setCommitOnboarding: (commitOnboarding: boolean) => 
-      update(state => ({ ...state, commitOnboarding })),
-    setSaveCloudBackup: (saveCloudBackup: boolean) => 
-      update(state => ({ ...state, saveCloudBackup })),
-    setUnlockWallet: (unlockWallet: boolean) => 
-      update(state => ({ ...state, unlockWallet })),
-    setRestoreFromCloud: (restoreFromCloud: boolean) => 
-      update(state => ({ ...state, restoreFromCloud })),
-    reset: () => set(initialState),
+
+    // Wallet generation
+    generateTempWallet: async () => {
+      const { Wallet } = await import('ethers');
+      const wallet = Wallet.createRandom();
+      update(s => ({
+        ...s,
+        tempWallet: {
+          address: wallet.address,
+          privateKey: wallet.privateKey,
+          mnemonic: wallet.mnemonic?.phrase || ''
+        }
+      }));
+    },
+
+    // Commit onboarding
+    commitOnboarding: async (passkeyId: string | null = null) => {
+      const state = get({ subscribe });
+      if (!state.tempWallet) return;
+
+      safeSetItem('wallet_address', state.tempWallet.address);
+      safeSetItem('wallet_onboarded_status', 'true');
+      safeSetItem('wallet_temp_mnemonic', state.tempWallet.mnemonic);
+
+      if (passkeyId) {
+        safeSetItem('wallet_credential_id', passkeyId);
+        safeSetItem('wallet_hyper_mode', 'true');
+      } else {
+        safeSetItem('wallet_hyper_mode', 'false');
+      }
+
+      update(s => ({
+        ...s,
+        address: s.tempWallet!.address,
+        mnemonic: s.tempWallet!.mnemonic,
+        credentialId: passkeyId,
+        isOnboarded: true,
+        isHyperMode: !!passkeyId,
+        isLocked: false,
+        tempWallet: null,
+        lastActive: new Date()
+      }));
+    },
+
+    // Reset
+    resetOnboarding: () => {
+      if (browser) {
+        localStorage.clear();
+        window.location.href = '/';
+      }
+    },
+
+    // Lock/Unlock
+    setLocked: (locked: boolean) => {
+      if (locked) {
+        update(s => ({
+          ...s,
+          isLocked: true,
+          privateKey: null,
+          mnemonic: null,
+          ensName: null,
+          txStatus: 'idle',
+          simulationLogs: [],
+          externalRequest: null
+        }));
+      } else {
+        update(s => ({ ...s, isLocked: false, lastActive: new Date() }));
+      }
+    },
+
+    unlockWallet: async (): Promise<boolean> => {
+      const storedAddress = safeGetItem('wallet_address');
+      const tempMnemonic = safeGetItem('wallet_temp_mnemonic');
+
+      if (!storedAddress) return false;
+
+      try {
+        if (tempMnemonic) {
+          const { Wallet } = await import('ethers');
+          const wallet = Wallet.fromPhrase(tempMnemonic);
+          update(s => ({
+            ...s,
+            privateKey: wallet.privateKey,
+            mnemonic: tempMnemonic,
+            isLocked: false,
+            lastActive: new Date()
+          }));
+          return true;
+        }
+        return false;
+      } catch (e) {
+        console.error('[Store] Unlock failed:', e);
+        update(s => ({ ...s, privateKey: null, mnemonic: null, isLocked: true }));
+        return false;
+      }
+    },
+
+    // Setters
+    setAddress: (address: string | null) => update(s => ({ ...s, address })),
+    setEnsName: (ensName: string | null) => update(s => ({ ...s, ensName })),
+
+    setHyperMode: (enabled: boolean) => {
+      safeSetItem('wallet_hyper_mode', String(enabled));
+      update(s => ({ ...s, isHyperMode: enabled }));
+    },
+
+    setActiveNetworkId: (networkId: string): boolean => {
+      const state = get({ subscribe });
+      const allAvailable = [GLOBAL_NETWORK, ...NETWORKS, ...state.customNetworks];
+      const network = allAvailable.find(n => n.id === networkId);
+      if (!network) return false;
+      safeSetItem('wallet_active_network_id', networkId);
+      update(s => ({ ...s, activeNetworkId: networkId }));
+      return true;
+    },
+
+    // Portfolio
+    updatePortfolio: (data: { native: string; usdc: string; totalUsd: number; tokens?: TokenAsset[]; nfts?: NFTAsset[] }) => {
+      update(s => {
+        const mergedTokens = [...s.tokens];
+        if (data.tokens) {
+          data.tokens.forEach(newToken => {
+            const idx = mergedTokens.findIndex(t => t.id === newToken.id && t.network === newToken.network);
+            if (idx >= 0) mergedTokens[idx] = newToken;
+            else mergedTokens.push(newToken);
+          });
+        }
+        const totalTokensValue = mergedTokens.reduce((sum, t) => sum + (Number.isFinite(t.totalValueUsd) ? t.totalValueUsd : 0), 0);
+        return {
+          ...s,
+          nativeBalance: data.native,
+          usdcBalance: data.usdc,
+          totalUsdValue: totalTokensValue + (s.nfts.length * 500),
+          tokens: mergedTokens,
+          nfts: data.nfts || s.nfts
+        };
+      });
+    },
+
+    importToken: (token: TokenAsset) => update(s => ({ ...s, tokens: [...s.tokens, token] })),
+    importNft: (nft: NFTAsset) => update(s => ({ ...s, nfts: [...s.nfts, nft] })),
+
+    // Transaction status
+    setTxStatus: (status: TransactionStatus) => update(s => ({ ...s, txStatus: status })),
+
+    addSimulationLog: (log: { role: 'ai' | 'system'; content: string }) =>
+      update(s => ({ ...s, simulationLogs: [...s.simulationLogs, log] })),
+
+    clearSimulationLogs: () => update(s => ({ ...s, simulationLogs: [] })),
+
+    // Activities
+    addActivity: (activity: Activity) => {
+      update(s => {
+        const updated = [activity, ...s.activities.filter(a => a.id !== activity.id)];
+        safeSetJSON('wallet_activities', updated);
+        return { ...s, activities: updated };
+      });
+    },
+
+    syncActivities: (newActivities: Activity[]) => {
+      update(s => {
+        if (!newActivities || newActivities.length === 0) return s;
+        const existingIds = new Set(s.activities.map(a => a.id));
+        const uniqueNew = newActivities.filter(a => !existingIds.has(a.id));
+        if (uniqueNew.length === 0) return s;
+        const updated = [...uniqueNew, ...s.activities].sort((a, b) => b.timestamp - a.timestamp);
+        safeSetJSON('wallet_activities', updated);
+        return { ...s, activities: updated };
+      });
+    },
+
+    // Contacts
+    addContact: (contact: Contact) => {
+      update(s => {
+        const updated = [...s.contacts.filter(c => c.address.toLowerCase() !== contact.address.toLowerCase()), contact];
+        safeSetJSON('wallet_contacts', updated);
+        return { ...s, contacts: updated };
+      });
+    },
+
+    removeContact: (address: string) => {
+      update(s => {
+        const updated = s.contacts.filter(c => c.address.toLowerCase() !== address.toLowerCase());
+        safeSetJSON('wallet_contacts', updated);
+        return { ...s, contacts: updated };
+      });
+    },
+
+    // DApps
+    openDAppBrowser: (id: string) => {
+      update(s => {
+        const now = Date.now();
+        const existing = s.recentDapps.filter(d => d.id !== id);
+        const updatedRecents = [{ id, lastUsed: now }, ...existing].slice(0, 10);
+        safeSetJSON('wallet_recent_dapps', updatedRecents);
+        return { ...s, activeBrowserDAppId: id, recentDapps: updatedRecents, lastActive: new Date() };
+      });
+    },
+
+    openCustomUrl: (url: string) => {
+      let cleanUrl = url.trim();
+      if (!/^https?:\/\//i.test(cleanUrl)) {
+        cleanUrl = `https://${cleanUrl}`;
+      }
+      let domain = 'custom-site';
+      try {
+        domain = new URL(cleanUrl).hostname;
+      } catch { /* Fallback */ }
+
+      const customDApp: CustomDApp = {
+        name: domain.split('.')[0].toUpperCase(),
+        icon: '🌐',
+        url: cleanUrl,
+        domain
+      };
+      update(s => ({ ...s, activeBrowserDAppId: 'custom', activeCustomDApp: customDApp, lastActive: new Date() }));
+    },
+
+    closeDAppBrowser: () => update(s => ({
+      ...s,
+      activeBrowserDAppId: null,
+      activeCustomDApp: null,
+      lastActive: new Date(),
+      externalRequest: null
+    })),
+
+    connectDapp: (dappInfo: Omit<DAppSession, 'sessionId' | 'lastUsed'>) => {
+      update(s => {
+        const existing = s.connectedDapps.find(d => d.domain === dappInfo.domain);
+        if (existing) return s;
+        const newSession: DAppSession = {
+          ...dappInfo,
+          sessionId: crypto.randomUUID(),
+          lastUsed: Date.now()
+        };
+        const updated = [newSession, ...s.connectedDapps];
+        safeSetJSON('wallet_connected_dapps', updated);
+        return { ...s, connectedDapps: updated, lastActive: new Date() };
+      });
+    },
+
+    disconnectDapp: (sessionId: string) => {
+      update(s => {
+        const updated = s.connectedDapps.filter(d => d.sessionId !== sessionId);
+        safeSetJSON('wallet_connected_dapps', updated);
+        return { ...s, connectedDapps: updated, lastActive: new Date() };
+      });
+    },
+
+    setExternalRequest: (req: ExternalRequest | null) => update(s => ({ ...s, externalRequest: req })),
+
+    // Cloud backup (simplified)
+    saveCloudBackup: async () => {
+      const state = get({ subscribe });
+      const mnemonicStr = state.mnemonic || safeGetItem('wallet_temp_mnemonic') || '';
+      if (!mnemonicStr || mnemonicStr.trim().split(' ').length < 12) return;
+
+      // Simplified: just store locally (real implementation would use cloud API)
+      const now = Date.now();
+      safeSetItem('coinfi_simulated_cloud_vault', mnemonicStr);
+      safeSetItem('wallet_backup_payload', mnemonicStr);
+      safeSetItem('wallet_cloud_backup_active', 'true');
+      safeSetItem('wallet_last_backup_time', now.toString());
+      update(s => ({ ...s, backupData: mnemonicStr, hasCloudBackup: true, lastBackupTimestamp: now }));
+    },
+
+    restoreFromCloud: async (payload: string): Promise<boolean> => {
+      try {
+        const { Wallet } = await import('ethers');
+        const wallet = Wallet.fromPhrase(payload);
+        safeSetItem('wallet_address', wallet.address);
+        safeSetItem('wallet_temp_mnemonic', payload);
+        safeSetItem('wallet_onboarded_status', 'true');
+        safeSetItem('wallet_hyper_mode', 'false');
+        update(s => ({
+          ...s,
+          address: wallet.address,
+          mnemonic: payload,
+          privateKey: wallet.privateKey,
+          tempWallet: { address: wallet.address, privateKey: wallet.privateKey, mnemonic: payload },
+          isOnboarded: true,
+          isLocked: false,
+          isHyperMode: false,
+          lastActive: new Date()
+        }));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
+    // Custom networks
+    addCustomNetwork: (network: Network) => {
+      update(s => {
+        const updated = [...s.customNetworks, { ...network, isCustom: true }];
+        safeSetJSON('wallet_custom_networks', updated);
+        return { ...s, customNetworks: updated };
+      });
+    },
+
+    updateActivity: () => update(s => ({ ...s, lastActive: new Date() })),
   };
 }
 
 export const walletStore = createWalletStore();
+
+// Derived stores for common selections
+export const activeNetwork = derived(walletStore, $store => {
+  const allNetworks = [GLOBAL_NETWORK, ...NETWORKS, ...$store.customNetworks];
+  return allNetworks.find(n => n.id === $store.activeNetworkId) || GLOBAL_NETWORK;
+});
+
+export const activeChainId = derived(activeNetwork, $network => $network.chainId || 11155420);
+
+export const filteredTokens = derived(
+  [walletStore, activeNetwork],
+  ([$store, $network]) => {
+    if ($store.activeNetworkId === 'all') return $store.tokens;
+    return $store.tokens.filter(t => !t.network || t.network === $network.name);
+  }
+);
+
+export const filteredNfts = derived(
+  [walletStore, activeNetwork],
+  ([$store, $network]) => {
+    if ($store.activeNetworkId === 'all') return $store.nfts;
+    return $store.nfts.filter(n => !n.network || n.network === $network.name);
+  }
+);
+
+export const displayedTotalUsd = derived(
+  [filteredTokens, filteredNfts],
+  ([$tokens, $nfts]) => {
+    const tokenVal = $tokens.reduce((sum, t) => sum + (Number.isFinite(t?.totalValueUsd) ? t.totalValueUsd : 0), 0);
+    const nftVal = ($nfts?.length || 0) * 500;
+    const total = tokenVal + nftVal;
+    return Number.isFinite(total) ? total : 0;
+  }
+);
