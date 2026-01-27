@@ -13,7 +13,8 @@
 		"test:e2e": "playwright test",
 		"test": "npm run test:e2e",
 		"storybook": "storybook dev -p 6006",
-		"build-storybook": "storybook build"
+		"build-storybook": "storybook build",
+		"clean": "rm -rf node_modules/.vite"
 	},
 	"devDependencies": {
 		"@chromatic-com/storybook": "^5.0.0",
