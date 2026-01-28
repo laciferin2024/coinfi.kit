@@ -20,7 +20,7 @@
   let showNav = $derived(
     authenticatedRoutes.some((route) => $page.url.pathname.startsWith(route)),
   )
-  let showPhoneFrame = $derived($page.url.pathname !== "/")
+  let showPhoneFrame = true
 </script>
 
 <svelte:head>
