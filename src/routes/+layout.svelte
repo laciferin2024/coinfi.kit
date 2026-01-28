@@ -99,9 +99,8 @@
   {/if}
 </div>
 
-<style>
-  :global(body) {
-    background-color: black;
-    color: white;
-  }
+<style lang="sass">
+  :global(body)
+    background-color: black
+    color: white
 </style>

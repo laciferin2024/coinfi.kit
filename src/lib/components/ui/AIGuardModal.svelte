@@ -232,16 +232,12 @@
   </div>
 {/if}
 
-<style>
-  @keyframes dash {
-    0% {
-      stroke-dashoffset: 239;
-    }
-    50% {
-      stroke-dashoffset: 0;
-    }
-    100% {
-      stroke-dashoffset: -239;
-    }
-  }
+<style lang="sass">
+  @keyframes dash
+    0%
+      stroke-dashoffset: 239
+    50%
+      stroke-dashoffset: 0
+    100%
+      stroke-dashoffset: -239
 </style>
