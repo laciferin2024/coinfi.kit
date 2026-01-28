@@ -1,5 +1,8 @@
-import { P1KeyGen, P2KeyGen, P1Signature, P1KeyShare } from "@silencelaboratories/ecdsa-tss";
-import { computeAddress } from "ethers";
+import { P1KeyGen, P2KeyGen, P1Signature } from "@silencelaboratories/ecdsa-tss";
+import { P1KeyShare } from "@silencelaboratories/ecdsa-tss/lib/esm/ecdsa/P1KeyShare";
+
+import { computeAddress, getBytes } from "ethers";
+
 import { PUBLIC_SUPABASE_URL } from '$env/static/public';
 
 export interface MPCShares {
@@ -58,7 +61,11 @@ export class MPCWalletService {
     // Use the library's fromStr to reconstruct the share object
     const share = P1KeyShare.fromStr(deviceShare);
 
-    const p1sig = new P1Signature(sessionId, share, messageHash);
+    // Convert messageHash string to Uint8Array
+    const messageHashBytes = getBytes(messageHash);
+    // P1Signature constructor expects (sessionId, messageHash: Uint8Array, p1KeyShareObj: IP1KeyShare)
+    const p1sig = new P1Signature(sessionId, messageHashBytes, share.toObj());
+
 
     // Round 1 (Client)
     const m1 = await p1sig.processMessage(null);

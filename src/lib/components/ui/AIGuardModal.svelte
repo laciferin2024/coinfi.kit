@@ -62,14 +62,24 @@
     <!-- Backdrop -->
     <div
       class="absolute inset-0 bg-black/80 backdrop-blur-md"
+      role="button"
+      tabindex="0"
       onclick={handleReject}
+      onkeydown={(e) => {
+        if (e.key === "Enter" || e.key === " ") handleReject()
+      }}
     ></div>
 
     <!-- Modal Content -->
     <div
       class="relative w-full max-w-[400px] bg-zinc-950 rounded-t-[3rem] border-t border-white/10 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
       transition:fly={{ y: 800, duration: 400 }}
+      role="button"
+      tabindex="0"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => {
+        if (e.key === "Enter" || e.key === " ") e.stopPropagation()
+      }}
     >
       <!-- Header -->
       <div class="p-8 pb-4 border-b border-white/5 space-y-4 shrink-0">

@@ -41,12 +41,25 @@
   <!-- Backdrop -->
   <div
     class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-end justify-center"
+    role="button"
+    tabindex="0"
     onclick={onClose}
+    onkeydown={(e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault()
+        onClose()
+      }
+    }}
   >
     <!-- Modal Sheet -->
     <div
       class="w-full max-w-[400px] max-h-[90vh] bg-zinc-900 rounded-t-[2.5rem] border-t border-white/10 overflow-hidden flex flex-col"
+      role="button"
+      tabindex="0"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => {
+        if (e.key === "Enter" || e.key === " ") e.stopPropagation()
+      }}
     >
       <!-- Header with close button -->
       <div class="p-6 pb-4 border-b border-white/5">

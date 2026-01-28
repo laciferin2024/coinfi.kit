@@ -179,8 +179,9 @@
               {date}
             </h3>
             {#each items as activity}
-              <div
-                class="p-4 rounded-[2rem] bg-zinc-900/40 border border-white/5 flex items-center justify-between group hover:bg-zinc-900/80 transition-all cursor-pointer"
+              <button
+                type="button"
+                class="w-full text-left p-4 rounded-[2rem] bg-zinc-900/40 border border-white/5 flex items-center justify-between group hover:bg-zinc-900/80 transition-all cursor-pointer"
                 onclick={() =>
                   activity.explorerUrl &&
                   window.open(activity.explorerUrl, "_blank")}
@@ -224,7 +225,7 @@
                     {activity.network.split(" ")[0]}
                   </span>
                 </div>
-              </div>
+              </button>
             {/each}
           </div>
         {/each}

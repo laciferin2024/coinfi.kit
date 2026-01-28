@@ -190,6 +190,8 @@
           </button>
         </div>
         <button
+          type="button"
+          aria-label="Import asset"
           onclick={() => (isImportModalOpen = true)}
           class="p-2.5 rounded-xl bg-zinc-900 border border-white/5 hover:bg-zinc-800 transition-colors"
         >
@@ -209,9 +211,10 @@
             </div>
           {:else}
             {#each $filteredTokens as token}
-              <div
+              <button
+                type="button"
                 onclick={() => openTokenDetail(token)}
-                class="p-4 rounded-[2rem] bg-zinc-900/50 border border-white/5 flex items-center justify-between hover:bg-zinc-900 transition-colors cursor-pointer"
+                class="w-full text-left p-4 rounded-[2rem] bg-zinc-900/50 border border-white/5 flex items-center justify-between hover:bg-zinc-900 transition-colors cursor-pointer"
               >
                 <div class="flex items-center gap-4">
                   <div
@@ -236,7 +239,7 @@
                     ${(token.totalValueUsd || 0).toLocaleString()}
                   </p>
                 </div>
-              </div>
+              </button>
             {/each}
           {/if}
         </div>

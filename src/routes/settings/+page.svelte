@@ -190,6 +190,8 @@
                   </div>
                 </div>
                 <button
+                  type="button"
+                  aria-label="Remove contact"
                   onclick={() => walletStore.removeContact(contact.address)}
                   class="p-2 text-rose-500/40 hover:text-rose-500 transition-colors"
                 >
@@ -228,6 +230,8 @@
               </p>
             </div>
             <button
+              type="button"
+              aria-label="Toggle unlimited mode"
               onclick={() => toggleHyper(!$walletStore.isHyperMode)}
               class="w-12 h-6 rounded-full transition-colors {$walletStore.isHyperMode
                 ? 'bg-orange-600'

@@ -20,16 +20,28 @@
       setTimeout(() => (copied = false), 2000)
     }
   }
+
+  function handleBackdropKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      onClose()
+    }
+  }
 </script>
 
 {#if isOpen && token}
   <div
+    role="button"
+    tabindex="0"
+    aria-label="Close receive modal"
     class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-end justify-center"
-    onclick={onClose}
+    onclick={(e) => {
+      if (e.target === e.currentTarget) onClose()
+    }}
+    onkeydown={handleBackdropKeydown}
   >
     <div
       class="w-full max-w-[400px] bg-zinc-900 rounded-t-[2.5rem] border-t border-white/10 p-6 pb-10 space-y-6"
-      onclick={(e) => e.stopPropagation()}
     >
       <!-- Header -->
       <div class="flex items-center justify-between">
@@ -47,6 +59,8 @@
           </div>
         </div>
         <button
+          type="button"
+          aria-label="Close"
           onclick={onClose}
           class="p-2 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors"
         >

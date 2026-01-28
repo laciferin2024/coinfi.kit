@@ -106,16 +106,28 @@
       amount = token.balance
     }
   }
+
+  function handleBackdropKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      handleClose()
+    }
+  }
 </script>
 
 {#if isOpen && token}
   <div
+    role="button"
+    tabindex="0"
+    aria-label="Close send modal"
     class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-end justify-center"
-    onclick={handleClose}
+    onclick={(e) => {
+      if (e.target === e.currentTarget) handleClose()
+    }}
+    onkeydown={handleBackdropKeydown}
   >
     <div
       class="w-full max-w-[400px] bg-zinc-900 rounded-t-[2.5rem] border-t border-white/10 p-6 pb-10 space-y-6"
-      onclick={(e) => e.stopPropagation()}
     >
       <!-- Header -->
       <div class="flex items-center justify-between">
@@ -131,6 +143,8 @@
           </div>
         </div>
         <button
+          type="button"
+          aria-label="Close"
           onclick={handleClose}
           class="p-2 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors"
         >
@@ -184,10 +198,12 @@
         <div class="space-y-2">
           <div class="flex items-center justify-between">
             <label
+              for="send-recipient"
               class="text-[10px] font-bold uppercase tracking-widest text-zinc-500"
               >Recipient</label
             >
             <button
+              type="button"
               onclick={() => (showContacts = !showContacts)}
               class="flex items-center gap-1 text-[9px] font-bold text-orange-500 hover:text-orange-400"
             >
@@ -196,6 +212,7 @@
             </button>
           </div>
           <input
+            id="send-recipient"
             type="text"
             placeholder="0x..."
             bind:value={recipientAddress}
@@ -208,6 +225,7 @@
             >
               {#each $walletStore.contacts as contact}
                 <button
+                  type="button"
                   onclick={() => selectContact(contact.address)}
                   class="w-full p-2 rounded-lg hover:bg-zinc-700 flex items-center gap-2 text-left transition-colors"
                 >
@@ -226,17 +244,20 @@
         <!-- Amount Input -->
         <div class="space-y-2">
           <label
+            for="send-amount"
             class="text-[10px] font-bold uppercase tracking-widest text-zinc-500"
             >Amount</label
           >
           <div class="relative">
             <input
+              id="send-amount"
               type="text"
               placeholder="0.00"
               bind:value={amount}
               class="w-full px-4 py-4 pr-20 bg-zinc-800 border border-white/10 rounded-xl text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50"
             />
             <button
+              type="button"
               onclick={setMaxAmount}
               class="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 rounded bg-orange-600/20 text-orange-500 text-[10px] font-bold uppercase hover:bg-orange-600/30 transition-colors"
             >
@@ -267,6 +288,7 @@
 
         <!-- Send Button -->
         <button
+          type="button"
           onclick={handleSend}
           disabled={isLoading || !recipientAddress || !amount}
           class="w-full py-4 rounded-xl bg-orange-600 text-white font-bold uppercase text-sm hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"

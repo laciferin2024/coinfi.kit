@@ -115,18 +115,30 @@
     resetForm()
     onClose()
   }
+
+  function handleBackdropKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      handleClose()
+    }
+  }
 </script>
 
 {#if isOpen}
   <!-- Backdrop -->
   <div
+    role="button"
+    tabindex="0"
+    aria-label="Close import token modal"
     class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center"
-    onclick={handleClose}
+    onclick={(e) => {
+      if (e.target === e.currentTarget) handleClose()
+    }}
+    onkeydown={handleBackdropKeydown}
   >
     <!-- Modal -->
     <div
       class="w-full max-w-[400px] bg-zinc-900 rounded-t-[2.5rem] border-t border-white/10 p-6 pb-10 space-y-6"
-      onclick={(e) => e.stopPropagation()}
     >
       <!-- Header -->
       <div class="flex items-center justify-between">
@@ -134,6 +146,7 @@
           Import Token
         </h2>
         <button
+          type="button"
           onclick={handleClose}
           class="p-2 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors"
         >
@@ -151,12 +164,15 @@
         <!-- Network Selector -->
         <div class="space-y-2">
           <label
+            for="import-network-selector"
             class="text-[10px] font-bold uppercase tracking-widest text-zinc-500"
           >
             Destination Network
           </label>
           <div class="relative">
             <button
+              type="button"
+              id="import-network-selector"
               onclick={() => (isNetworkSelectorOpen = !isNetworkSelectorOpen)}
               class="w-full flex items-center justify-between px-4 py-3 bg-zinc-800 border border-white/10 rounded-xl hover:bg-zinc-700/50 transition-colors"
             >
@@ -179,6 +195,7 @@
               >
                 {#each eligibleNetworks as net}
                   <button
+                    type="button"
                     onclick={() => {
                       selectedNetworkId = net.id
                       isNetworkSelectorOpen = false
@@ -206,12 +223,14 @@
         <!-- Contract Address Input -->
         <div class="space-y-2">
           <label
+            for="import-contract-address"
             class="text-[10px] font-bold uppercase tracking-widest text-zinc-500"
           >
             Contract Address
           </label>
           <div class="relative">
             <input
+              id="import-contract-address"
               type="text"
               placeholder="0x..."
               bind:value={contractAddress}
@@ -222,6 +241,7 @@
               class="w-full px-4 py-4 pr-12 bg-zinc-800 border border-white/10 rounded-xl text-sm text-white font-mono placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50"
             />
             <button
+              type="button"
               onclick={lookupToken}
               disabled={isLoading || !contractAddress}
               class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 transition-colors"
@@ -255,6 +275,7 @@
               </div>
             </div>
             <button
+              type="button"
               onclick={() =>
                 importToken({
                   symbol: tokenInfo!.symbol,

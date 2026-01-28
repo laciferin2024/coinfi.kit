@@ -113,6 +113,38 @@ export class GoogleDriveService {
 
     return null;
   }
+
+  async listBackups(): Promise<Array<{ id: string; name: string; createdTime?: string }>> {
+    if (!this.accessToken) await this.authenticate();
+
+    // Query for any file starting with coinfi_share_ in appDataFolder
+    const query = "name contains 'coinfi_share_' and 'appDataFolder' in parents and trashed = false";
+
+    const listResponse = await fetch(
+      `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&orderBy=createdTime desc&q=${encodeURIComponent(query)}&fields=files(id, name, createdTime)`,
+      {
+        headers: { Authorization: `Bearer ${this.accessToken}` },
+      }
+    );
+
+    if (!listResponse.ok) throw new Error("Failed to list backups from Google Drive");
+    const listData = await listResponse.json();
+    return listData.files || [];
+  }
+
+  async restoreFile(fileId: string): Promise<{ address: string; share: string; timestamp: number }> {
+    if (!this.accessToken) await this.authenticate();
+
+    const fileResponse = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      {
+        headers: { Authorization: `Bearer ${this.accessToken}` },
+      }
+    );
+
+    if (!fileResponse.ok) throw new Error("Failed to download file content");
+    return await fileResponse.json();
+  }
 }
 
 export const googleDriveService = new GoogleDriveService();
