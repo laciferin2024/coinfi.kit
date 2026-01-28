@@ -1,3 +1,5 @@
+import { PUBLIC_GOOGLE_CLIENT_ID } from "$env/static/public";
+
 export class GoogleDriveService {
   private gapi: any;
   private tokenClient: any;
@@ -7,7 +9,7 @@ export class GoogleDriveService {
     if (typeof window !== 'undefined') {
       this.gapi = (window as any).gapi;
       this.tokenClient = (window as any).google?.accounts.oauth2.initTokenClient({
-        client_id: import.meta.env.PUBLIC_GOOGLE_CLIENT_ID,
+        client_id: PUBLIC_GOOGLE_CLIENT_ID,
         scope: 'https://www.googleapis.com/auth/drive.appdata',
         callback: (response: any) => {
           if (response.error !== undefined) {
