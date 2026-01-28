@@ -363,7 +363,7 @@
               onclick={refreshIdentity}
               class="flex items-center gap-2 px-4 py-2.5 bg-zinc-800/80 hover:bg-zinc-700 text-white text-[10px] font-bold uppercase rounded-xl border border-white/10 transition-all"
             >
-              ↻ REFRESH
+              ↻ REGENERATE
             </button>
           </div>
         </div>

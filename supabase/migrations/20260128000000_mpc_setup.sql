@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS mpc_wallets (
     address TEXT UNIQUE NOT NULL,
     public_key TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    user_id UUID REFERENCES auth.users(id)
+    user_id UUID -- Removed FK to auth.users to allow anonymous MPC generation
 );
 
 CREATE TABLE IF NOT EXISTS mpc_shares (
@@ -20,23 +20,20 @@ ALTER TABLE mpc_wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mpc_shares ENABLE ROW LEVEL SECURITY;
 
 -- Policies for mpc_wallets
-CREATE POLICY "Users can view their own MPC wallets"
+CREATE POLICY "Public read access for mpc_wallets"
 ON mpc_wallets FOR SELECT
-USING (auth.uid() = user_id);
+USING (true);
 
-CREATE POLICY "Users can create their own MPC wallets"
+CREATE POLICY "Public insert access for mpc_wallets"
 ON mpc_wallets FOR INSERT
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK (true);
 
 -- Policies for mpc_shares
 -- CRITICAL: Only the service role or a specific function should be able to read share_data
--- For simplicity in this demo, we'll allow the owner to insert, but only a service role function to read.
-CREATE POLICY "Users can insert their backend share"
+-- We allow insertion during the setup ceremony, but NO direct select access.
+CREATE POLICY "Public insert access for mpc_shares"
 ON mpc_shares FOR INSERT
-WITH CHECK (EXISTS (
-    SELECT 1 FROM mpc_wallets 
-    WHERE id = mpc_shares.wallet_id AND user_id = auth.uid()
-));
+WITH CHECK (true);
 
 -- Function to sign using the backend share
 -- This is what the Edge Function will call or it could be a Postgres function if logic is ported.
