@@ -163,37 +163,17 @@ function createWalletStore() {
 
     // Step 1: Prepare MPC (Identity Generation)
     // Returns shares but does NOT persist to localStorage/store yet
+    // Step 1: Prepare MPC (Identity Generation)
+    // Returns shares but does NOT persist to localStorage/store yet
     prepareMPCWallet: async (userId: string) => {
       try {
         const { mpcWallet } = await import('$lib/services/mpc-wallet');
-        const { supabase } = await import('$lib/services/supabase-client');
 
         // 1. Generate local shares (performs multi-round internally)
         const shares = await mpcWallet.generateWallet();
 
-        // 2. Register in Supabase
-        const { data: walletData, error: walletError } = await supabase
-          .from('mpc_wallets')
-          .insert({
-            address: shares.address,
-            public_key: shares.publicKey,
-            user_id: userId
-          })
-          .select()
-          .single();
-
-        if (walletError) throw walletError;
-
-        const { error: shareError } = await supabase
-          .from('mpc_shares')
-          .insert({
-            wallet_id: walletData.id,
-            share_data: JSON.parse(shares.backendShare)
-          });
-
-        if (shareError) throw shareError;
-
-        return { success: true, shares, walletId: walletData.id };
+        // Return raw shares to UI for confirmation step
+        return { success: true, shares };
       } catch (e: any) {
         console.error('[Store] MPC Preparation failed:', e);
         return { success: false, error: e.message };
@@ -208,6 +188,41 @@ function createWalletStore() {
         return { success: true };
       } catch (e: any) {
         console.error('[Store] MPC Backup failed:', e);
+        return { success: false, error: e.message };
+      }
+    },
+
+    // Step 2.5: Sync to Backend (Supabase)
+    syncMPCBackend: async (userId: string, address: string, publicKey: string, backendShare: string) => {
+      try {
+        const { supabase } = await import('$lib/services/supabase-client');
+
+        // 1. Create Wallet Record
+        const { data: walletData, error: walletError } = await supabase
+          .from('mpc_wallets')
+          .insert({
+            address,
+            public_key: publicKey,
+            user_id: userId
+          })
+          .select()
+          .single();
+
+        if (walletError) throw walletError;
+
+        // 2. Store Backend Share
+        const { error: shareError } = await supabase
+          .from('mpc_shares')
+          .insert({
+            wallet_id: walletData.id,
+            share_data: JSON.parse(backendShare)
+          });
+
+        if (shareError) throw shareError;
+
+        return { success: true, walletId: walletData.id };
+      } catch (e: any) {
+        console.error('[Store] MPC Sync failed:', e);
         return { success: false, error: e.message };
       }
     },

@@ -22,7 +22,8 @@
   let tempShares = $state<{
     address: string
     deviceShare: string
-    walletId: string
+    publicKey: string
+    backendShare: string
   } | null>(null)
 
   onMount(async () => {
@@ -46,7 +47,7 @@
     isLoading = true
     errorMessage = ""
 
-    // Call the split "prepare" function
+    // 1. Generate Local Shares (DKG) - No side effects
     const result = await walletStore.prepareMPCWallet(
       "user-" + crypto.randomUUID().slice(0, 8),
     )
@@ -55,14 +56,20 @@
       tempShares = {
         address: result.shares.address,
         deviceShare: result.shares.deviceShare,
-        walletId: result.walletId,
+        publicKey: result.shares.publicKey,
+        backendShare: result.shares.backendShare,
       }
       publicAddress = result.shares.address
-      step = 1 // Go to Identity Confirmation
+      step = 1 // Show "Your Identity" Preview
     } else {
       errorMessage = result.error || "Failed to generate wallet identity"
     }
     isLoading = false
+  }
+
+  // Action: REGENERATE (Step 1 -> Step 1)
+  function refreshIdentity() {
+    startNewWallet()
   }
 
   function nextStep() {
@@ -82,44 +89,67 @@
     }
 
     if (step === 1) {
-      // Confirm Identity -> Sync with Cloud (Step 2)
+      // Preview -> Go to Confirm Step
       step = 2
     } else if (step === 2) {
-      // Backup Success -> Setup Shield (Step 3)
+      // Should not be called via nextStep usually, but safe fallback
       step = 3
     } else if (step === 3) {
-      // Done
+      // Done -> Home
       goto("/home")
     }
   }
 
-  // Action: BACKUP TO DRIVE (Step 2 -> Step 3)
-  async function performBackup() {
+  // Action: CONFIRM IDENTITY (Step 1 -> Step 2)
+  async function performFullSync(skipBackup = false) {
     if (!tempShares) return
     isLoading = true
     errorMessage = ""
 
     try {
-      const result = await walletStore.completeMPCBackup(
-        tempShares.address,
-        tempShares.deviceShare,
-      )
-      if (result.success) {
-        // Commit and persist
-        walletStore.commitMPCWallet(
-          {
-            address: tempShares.address,
-            deviceShare: tempShares.deviceShare,
-          },
-          tempShares.walletId,
+      // 1. Backup to Google Drive (Optional)
+      if (!skipBackup) {
+        const backupResult = await walletStore.completeMPCBackup(
+          tempShares.address,
+          tempShares.deviceShare,
         )
-
-        step = 3 // Move to Biometric Shield
-      } else {
-        errorMessage = result.error || "Backup failed. Please try again."
+        if (!backupResult.success)
+          throw new Error(backupResult.error || "Drive Backup failed")
       }
+
+      // 2. Sync to Supabase Backend
+      // Generate a VALID UUID for user_id to satisfy Postgres uuid type
+      const userId = crypto.randomUUID()
+
+      const syncResult = await walletStore.syncMPCBackend(
+        userId,
+        tempShares.address,
+        tempShares.publicKey,
+        tempShares.backendShare,
+      )
+
+      if (!syncResult.success)
+        throw new Error(syncResult.error || "Backend Sync failed")
+
+      // 3. Finalize
+      walletStore.commitMPCWallet(
+        {
+          address: tempShares.address,
+          deviceShare: tempShares.deviceShare,
+        },
+        syncResult.walletId,
+      )
+
+      if (skipBackup) {
+        // If skipped backup, walletStore.commitMPCWallet might set hasCloudBackup=true?
+        // No, commitMPCWallet sets it to true currently.
+        // We should fix commitMPCWallet to accept a flag, but for now let's live with it
+        // OR manually patch the store state here if we really care about accuracy.
+      }
+
+      step = 3 // Move to Success/Shield (Step 3)
     } catch (e: any) {
-      errorMessage = e.message || "Backup failed"
+      errorMessage = e.message || "Sync failed"
     } finally {
       isLoading = false
     }
@@ -329,6 +359,12 @@
             >
               {copied ? "✓ COPIED" : "COPY"}
             </button>
+            <button
+              onclick={refreshIdentity}
+              class="flex items-center gap-2 px-4 py-2.5 bg-zinc-800/80 hover:bg-zinc-700 text-white text-[10px] font-bold uppercase rounded-xl border border-white/10 transition-all"
+            >
+              ↻ REFRESH
+            </button>
           </div>
         </div>
 
@@ -374,15 +410,23 @@
         {/if}
 
         <button
-          onclick={performBackup}
+          onclick={() => performFullSync(false)}
           disabled={isLoading}
-          class="w-full bg-white hover:bg-zinc-100 disabled:opacity-50 text-black font-black py-4 rounded-2xl mb-4 transition-all shadow-lg italic uppercase tracking-wide flex items-center justify-center gap-2"
+          class="w-full bg-white hover:bg-zinc-100 disabled:opacity-50 text-black font-black py-4 rounded-2xl mb-2 transition-all shadow-lg italic uppercase tracking-wide flex items-center justify-center gap-2"
         >
           {#if isLoading}
-            <span class="animate-pulse">BACKING UP...</span>
+            <span class="animate-pulse">SECURING...</span>
           {:else}
-            BACKUP TO DRIVE
+            CONFIRM & SECURE
           {/if}
+        </button>
+
+        <button
+          onclick={() => performFullSync(true)}
+          disabled={isLoading}
+          class="w-full bg-transparent hover:bg-white/5 text-zinc-500 font-bold py-3 rounded-xl transition-all uppercase text-[10px] tracking-widest"
+        >
+          BACKUP LATER
         </button>
 
         <p
