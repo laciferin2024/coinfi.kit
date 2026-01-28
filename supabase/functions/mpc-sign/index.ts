@@ -1,7 +1,7 @@
 // Supabase Edge Function: mpc-sign
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { P2Signature } from "https://esm.sh/@silencelaboratories/ecdsa-tss"
+import { createClient } from "npm:@supabase/supabase-js@2"
+import { P2Signature } from "npm:@silencelaboratories/ecdsa-tss"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
