@@ -1,5 +1,7 @@
 import { P1KeyGen, P2KeyGen, P1Signature } from "@silencelaboratories/ecdsa-tss";
 import { P1KeyShare } from "@silencelaboratories/ecdsa-tss/lib/esm/ecdsa/P1KeyShare";
+import { P2KeyShare } from "@silencelaboratories/ecdsa-tss/lib/esm/ecdsa/P2KeyShare";
+
 
 import { computeAddress, getBytes } from "ethers";
 
@@ -46,8 +48,8 @@ export class MPCWalletService {
     const address = computeAddress("0x" + publicKey);
 
     return {
-      deviceShare: m3.p1_key_share.toStr(),
-      backendShare: m4.p2_key_share.toStr(),
+      deviceShare: P1KeyShare.fromObj(m3.p1_key_share).toStr(),
+      backendShare: P2KeyShare.fromObj(m4.p2_key_share).toStr(),
       publicKey,
       address
     };
