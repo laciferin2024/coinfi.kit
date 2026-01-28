@@ -1,0 +1,118 @@
+export class GoogleDriveService {
+  private gapi: any;
+  private tokenClient: any;
+  private accessToken: string | null = null;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.gapi = (window as any).gapi;
+      this.tokenClient = (window as any).google?.accounts.oauth2.initTokenClient({
+        client_id: import.meta.env.PUBLIC_GOOGLE_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.appdata',
+        callback: (response: any) => {
+          if (response.error !== undefined) {
+            throw response;
+          }
+          this.accessToken = response.access_token;
+        },
+      });
+    }
+  }
+
+  async authenticate(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.tokenClient) return reject("Google Identity Services not initialized");
+
+      this.tokenClient.callback = (response: any) => {
+        if (response.error) return reject(response);
+        this.accessToken = response.access_token;
+        resolve();
+      };
+
+      this.tokenClient.requestAccessToken({ prompt: 'consent' });
+    });
+  }
+
+  async backupShare(walletAddress: string, deviceShare: string): Promise<void> {
+    if (!this.accessToken) await this.authenticate();
+
+    const fileName = `coinfi_share_${walletAddress.toLowerCase()}.json`;
+    const metadata = {
+      name: fileName,
+      parents: ['appDataFolder'],
+    };
+
+    const fileContent = JSON.stringify({
+      address: walletAddress,
+      share: deviceShare,
+      timestamp: Date.now()
+    });
+
+    const boundary = 'foo_bar_baz';
+    const delimiter = `\r\n--${boundary}\r\n`;
+    const close_delim = `\r\n--${boundary}--`;
+
+    const multipartRequestBody =
+      delimiter +
+      'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+      JSON.stringify(metadata) +
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      fileContent +
+      close_delim;
+
+    const response = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          'Content-Type': `multipart/related; boundary=${boundary}`,
+        },
+        body: multipartRequestBody,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to backup to Google Drive: ${response.statusText}`);
+    }
+
+    console.log(`[GoogleDrive] Backup successful for ${walletAddress}`);
+  }
+
+  async restoreShare(walletAddress: string): Promise<string | null> {
+    if (!this.accessToken) await this.authenticate();
+
+    // Query for the file in appDataFolder
+    const fileName = `coinfi_share_${walletAddress.toLowerCase()}.json`;
+    const query = `name = '${fileName}' and 'appDataFolder' in parents`;
+
+    const listResponse = await fetch(
+      `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${encodeURIComponent(query)}`,
+      {
+        headers: { Authorization: `Bearer ${this.accessToken}` },
+      }
+    );
+
+    if (!listResponse.ok) throw new Error("Failed to query Google Drive");
+    const listData = await listResponse.json();
+
+    if (listData.files && listData.files.length > 0) {
+      const fileId = listData.files[0].id;
+      const fileResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+        {
+          headers: { Authorization: `Bearer ${this.accessToken}` },
+        }
+      );
+
+      if (!fileResponse.ok) throw new Error("Failed to download share from drive");
+      const data = await fileResponse.json();
+      return data.share;
+    }
+
+    return null;
+  }
+}
+
+export const googleDriveService = new GoogleDriveService();

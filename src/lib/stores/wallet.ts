@@ -96,6 +96,9 @@ export interface WalletState {
   activeBrowserDAppId: string | null;
   activeCustomDApp: CustomDApp | null;
   externalRequest: ExternalRequest | null;
+  isMPC: boolean;
+  deviceShare: string | null;
+  mpcWalletId: string | null;
 }
 
 // Initial state
@@ -131,6 +134,9 @@ function createInitialState(): WalletState {
     activeBrowserDAppId: null,
     activeCustomDApp: null,
     externalRequest: null,
+    isMPC: safeGetItem('wallet_is_mpc') === 'true',
+    deviceShare: safeGetItem('wallet_device_share'),
+    mpcWalletId: safeGetItem('wallet_mpc_id'),
   };
 }
 
@@ -153,6 +159,70 @@ function createWalletStore() {
           mnemonic: wallet.mnemonic?.phrase || ''
         }
       }));
+    },
+
+    // MPC Wallet generation
+    generateMPCWallet: async (userId: string) => {
+      try {
+        const { mpcWallet } = await import('$lib/services/mpc-wallet');
+        const { supabase } = await import('$lib/services/supabase-client');
+        const { googleDriveService } = await import('$lib/services/google-drive');
+
+        // 1. Generate local shares (performs multi-round internally)
+        const shares = await mpcWallet.generateWallet();
+
+        // 2. Register in Supabase
+        const { data: walletData, error: walletError } = await supabase
+          .from('mpc_wallets')
+          .insert({
+            address: shares.address,
+            public_key: shares.publicKey,
+            user_id: userId
+          })
+          .select()
+          .single();
+
+        if (walletError) throw walletError;
+
+        const { error: shareError } = await supabase
+          .from('mpc_shares')
+          .insert({
+            wallet_id: walletData.id,
+            share_data: JSON.parse(shares.backendShare)
+          });
+
+        if (shareError) throw shareError;
+
+        // 3. Mandated Backup to Google Drive (Hidden appDataFolder)
+        await googleDriveService.backupShare(shares.address, shares.deviceShare);
+
+        // 4. Persistence
+        if (browser) {
+          localStorage.setItem('wallet_address', shares.address);
+          localStorage.setItem('wallet_device_share', shares.deviceShare);
+          localStorage.setItem('wallet_is_mpc', 'true');
+          localStorage.setItem('wallet_mpc_id', walletData.id);
+          localStorage.setItem('wallet_onboarded_status', 'true');
+          localStorage.setItem('wallet_cloud_backup_active', 'true');
+        }
+
+        update(s => ({
+          ...s,
+          address: shares.address,
+          deviceShare: shares.deviceShare,
+          mpcWalletId: walletData.id,
+          isMPC: true,
+          hasCloudBackup: true,
+          isOnboarded: true,
+          isLocked: false,
+          lastActive: new Date()
+        }));
+
+        return { success: true, address: shares.address };
+      } catch (e: any) {
+        console.error('[Store] MPC Generation failed:', e);
+        return { success: false, error: e.message };
+      }
     },
 
     // Commit onboarding
