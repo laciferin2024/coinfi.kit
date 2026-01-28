@@ -1,7 +1,13 @@
 {
 	"servers": {
 		"svelte": {
-			"url": "https://mcp.svelte.dev/mcp"
+			"url": "https://mcp.svelte.dev/mcp",
+			"type": "http"
+		},
+		"supabase-project": {
+			"url": "https://mcp.supabase.com/mcp?project_ref=kzvnlufdnapdiepcjgpv",
+			"type": "http"
 		}
-	}
+	},
+	"inputs": []
 }
