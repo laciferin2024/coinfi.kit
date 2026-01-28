@@ -232,7 +232,7 @@ function createWalletStore() {
 
       safeSetItem('wallet_address', state.tempWallet.address);
       safeSetItem('wallet_onboarded_status', 'true');
-      safeSetItem('wallet_temp_mnemonic', state.tempWallet.mnemonic);
+      // Plaintext mnemonic is no longer persisted for security
 
       if (passkeyId) {
         safeSetItem('wallet_credential_id', passkeyId);
@@ -282,7 +282,7 @@ function createWalletStore() {
 
     unlockWallet: async (): Promise<boolean> => {
       const storedAddress = safeGetItem('wallet_address');
-      const tempMnemonic = safeGetItem('wallet_temp_mnemonic');
+      // Legacy temp mnemonic is no longer supported/persisted
       const credId = safeGetItem('wallet_credential_id');
       const deviceKey = safeGetItem('wallet_device_key');
 
@@ -300,25 +300,15 @@ function createWalletStore() {
               privateKey: '0x' + privateKeyHex,
               isLocked: false,
               lastActive: new Date(),
-              mnemonic: tempMnemonic
+              mnemonic: null
             }));
             return true;
           }
         }
 
-        // Fall back to mnemonic
-        if (tempMnemonic) {
-          const { Wallet } = await import('ethers');
-          const wallet = Wallet.fromPhrase(tempMnemonic);
-          update(s => ({
-            ...s,
-            privateKey: wallet.privateKey,
-            mnemonic: tempMnemonic,
-            isLocked: false,
-            lastActive: new Date()
-          }));
-          return true;
-        }
+        // Fall back to mnemonic is disabled as we don't persist it anymore
+        // Only existing sessions with state.mnemonic or Passkey auth will work
+        return false;
         return false;
       } catch (e) {
         console.error('[Store] Unlock failed:', e);
@@ -505,7 +495,7 @@ function createWalletStore() {
     // Cloud backup (simplified)
     saveCloudBackup: async () => {
       const state = get({ subscribe });
-      const mnemonicStr = state.mnemonic || safeGetItem('wallet_temp_mnemonic') || '';
+      const mnemonicStr = state.mnemonic || '';
       if (!mnemonicStr || mnemonicStr.trim().split(' ').length < 12) return;
 
       // Simplified: just store locally (real implementation would use cloud API)
@@ -522,7 +512,7 @@ function createWalletStore() {
         const { Wallet } = await import('ethers');
         const wallet = Wallet.fromPhrase(payload);
         safeSetItem('wallet_address', wallet.address);
-        safeSetItem('wallet_temp_mnemonic', payload);
+        // Do not persist mnemonic
         safeSetItem('wallet_onboarded_status', 'true');
         safeSetItem('wallet_hyper_mode', 'false');
         update(s => ({

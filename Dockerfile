@@ -17,6 +17,8 @@ RUN bun install --frozen-lockfile
 # Copy source files
 
 # Build the project
+# Force adapter-auto to emit adapter-node output in Docker builds
+ENV GCP_BUILDPACKS=1
 RUN bun run build
 
 # Stage 2: Production (lightweight)
@@ -26,6 +28,7 @@ WORKDIR /app
 
 # Enable production mode
 ENV NODE_ENV=production
+ENV ADAPTER_MODE=node
 
 # Copy built assets and production-ready node_modules from builder stage
 # We use the built output from adapter-node

@@ -1,8 +1,21 @@
 import  {mdsvex}  from 'mdsvex';
-import adapter from '@sveltejs/adapter-node';
+import autoAdapters from '@sveltejs/adapter-auto';
+import nodeAdapter from '@sveltejs/adapter-node';
 
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { execSync } from "child_process"
+
+
+let adapter = autoAdapters
+
+switch (process.env.ADAPTER_MODE) {
+  case 'node':
+    adapter = nodeAdapter;
+    break;
+  default:
+    adapter = autoAdapters;
+    break;
+}
 
 
 let tag;
