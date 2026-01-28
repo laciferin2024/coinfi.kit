@@ -95,6 +95,40 @@ export class MPCWalletService {
     if (!m3.signature) throw new Error("MPC Signing failed");
     return m3.signature;
   }
+
+  /**
+   * Signs a text message using MPC (for ownership proofs, etc.)
+   * This version doesn't call the backend, it uses both shares locally
+   */
+  async signMessage(message: string, deviceShareStr: string, backendShareStr: string): Promise<string> {
+    const sessionId = crypto.randomUUID();
+
+    // Hash the message (EIP-191 personal sign format)
+    const { hashMessage } = await import('ethers');
+    const messageHash = hashMessage(message);
+    const messageHashBytes = getBytes(messageHash);
+
+    // Reconstruct shares
+    const p1Share = P1KeyShare.fromStr(deviceShareStr);
+    const p2Share = P2KeyShare.fromStr(backendShareStr);
+
+    // P1 side
+    const p1sig = new P1Signature(sessionId, messageHashBytes, p1Share.toObj());
+
+    // Round 1
+    const m1 = await p1sig.processMessage(null);
+
+    // P2 side (simulated locally since we have both shares temporarily)
+    const { P2Signature } = await import('@silencelaboratories/ecdsa-tss');
+    const p2sig = new P2Signature(sessionId, messageHashBytes, p2Share.toObj());
+    const m2 = await p2sig.processMessage(m1.msg_to_send!);
+
+    // Round 3
+    const m3 = await p1sig.processMessage(m2.msg_to_send!);
+
+    if (!m3.signature) throw new Error("Message signing failed");
+    return m3.signature;
+  }
 }
 
 export const mpcWallet = new MPCWalletService();

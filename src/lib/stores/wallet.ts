@@ -200,44 +200,32 @@ function createWalletStore() {
 
         // 1. Generate ownership proof message
         const proofMessage = `CoinFi Wallet Ownership Proof\nAddress: ${address}\nTimestamp: ${Date.now()}`;
-        const messageHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(proofMessage));
-        const messageHashHex = Array.from(new Uint8Array(messageHash))
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join('');
 
         // 2. Sign using MPC (both shares participate)
         console.log('[Store] Generating ownership proof signature...');
-        const signature = await mpcWallet.signMessage(messageHashHex, deviceShare, backendShare);
+        const signature = await mpcWallet.signMessage(proofMessage, deviceShare, backendShare);
 
         if (!signature) {
           throw new Error('Failed to generate ownership proof signature');
         }
 
-        // 3. Create Wallet Record with ownership proof
-        const { data: walletData, error: walletError } = await supabase
-          .from('mpc_wallets')
-          .insert({
+        // 3. Call Edge Function for cryptographically verified wallet creation
+        const { data, error } = await supabase.functions.invoke('verify-wallet-ownership', {
+          body: {
+            userId,
             address,
-            public_key: publicKey,
-            user_id: userId,
-            ownership_proof: signature
-          })
-          .select()
-          .single();
+            publicKey,
+            backendShare,
+            signature,
+            message: proofMessage
+          }
+        });
 
-        if (walletError) throw walletError;
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || 'Verification failed');
 
-        // 4. Store Backend Share (only after wallet created)
-        const { error: shareError } = await supabase
-          .from('mpc_shares')
-          .insert({
-            wallet_id: walletData.id,
-            share_data: JSON.parse(backendShare)
-          });
-
-        if (shareError) throw shareError;
-
-        return { success: true, walletId: walletData.id };
+        console.log('✓ Wallet ownership verified by backend:', data.message);
+        return { success: true, walletId: data.walletId };
       } catch (e: any) {
         console.error('[Store] MPC Sync failed:', e);
         return { success: false, error: e.message };
