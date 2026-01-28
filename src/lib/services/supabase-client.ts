@@ -1,6 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseKey = import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY } from '$env/static/public';
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = PUBLIC_SUPABASE_URL;
+const supabaseKey = PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('[Supabase] Missing environment variables:', {
+    url: !!supabaseUrl,
+    key: !!supabaseKey
+  });
+}
+
+export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder');

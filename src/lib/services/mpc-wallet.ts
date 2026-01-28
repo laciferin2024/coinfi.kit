@@ -1,5 +1,6 @@
-import { P1KeyGen, P2KeyGen, P1Signature } from "@silencelaboratories/ecdsa-tss";
+import { P1KeyGen, P2KeyGen, P1Signature, P1KeyShare } from "@silencelaboratories/ecdsa-tss";
 import { computeAddress } from "ethers";
+import { PUBLIC_SUPABASE_URL } from '$env/static/public';
 
 export interface MPCShares {
   deviceShare: string;
@@ -25,7 +26,8 @@ export class MPCWalletService {
     const m1 = await p1kg.getKeyGenMessage1();
 
     // Round 2
-    const m2 = await p2kg.processMessage(JSON.stringify(m1));
+    // Use the library's built-in serialization
+    const m2 = await p2kg.processMessage(m1.toStr());
 
     // Round 3
     const m3 = await p1kg.processMessage(m2.msg_to_send!);
@@ -41,8 +43,8 @@ export class MPCWalletService {
     const address = computeAddress("0x" + publicKey);
 
     return {
-      deviceShare: JSON.stringify(m3.p1_key_share),
-      backendShare: JSON.stringify(m4.p2_key_share),
+      deviceShare: m3.p1_key_share.toStr(),
+      backendShare: m4.p2_key_share.toStr(),
       publicKey,
       address
     };
@@ -53,16 +55,16 @@ export class MPCWalletService {
    */
   async sign(messageHash: string, deviceShare: string, walletId: string): Promise<string> {
     const sessionId = crypto.randomUUID();
-    const parsedShare = JSON.parse(deviceShare);
+    // Use the library's fromStr to reconstruct the share object
+    const share = P1KeyShare.fromStr(deviceShare);
 
-    // P1Signature expects the share object
-    const p1sig = new P1Signature(sessionId, parsedShare, messageHash);
+    const p1sig = new P1Signature(sessionId, share, messageHash);
 
     // Round 1 (Client)
     const m1 = await p1sig.processMessage(null);
 
     // Round 2 (Server)
-    const response = await fetch(`${import.meta.env.PUBLIC_SUPABASE_URL}/functions/v1/mpc-sign`, {
+    const response = await fetch(`${PUBLIC_SUPABASE_URL}/functions/v1/mpc-sign`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
