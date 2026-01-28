@@ -192,25 +192,42 @@ function createWalletStore() {
       }
     },
 
-    // Step 2.5: Sync to Backend (Supabase)
-    syncMPCBackend: async (userId: string, address: string, publicKey: string, backendShare: string) => {
+    // Step 2.5: Sync to Backend (Supabase) with Ownership Proof
+    syncMPCBackend: async (userId: string, address: string, publicKey: string, backendShare: string, deviceShare: string) => {
       try {
         const { supabase } = await import('$lib/services/supabase-client');
+        const { mpcWallet } = await import('$lib/services/mpc-wallet');
 
-        // 1. Create Wallet Record
+        // 1. Generate ownership proof message
+        const proofMessage = `CoinFi Wallet Ownership Proof\nAddress: ${address}\nTimestamp: ${Date.now()}`;
+        const messageHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(proofMessage));
+        const messageHashHex = Array.from(new Uint8Array(messageHash))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+
+        // 2. Sign using MPC (both shares participate)
+        console.log('[Store] Generating ownership proof signature...');
+        const signature = await mpcWallet.signMessage(messageHashHex, deviceShare, backendShare);
+
+        if (!signature) {
+          throw new Error('Failed to generate ownership proof signature');
+        }
+
+        // 3. Create Wallet Record with ownership proof
         const { data: walletData, error: walletError } = await supabase
           .from('mpc_wallets')
           .insert({
             address,
             public_key: publicKey,
-            user_id: userId
+            user_id: userId,
+            ownership_proof: signature
           })
           .select()
           .single();
 
         if (walletError) throw walletError;
 
-        // 2. Store Backend Share
+        // 4. Store Backend Share (only after wallet created)
         const { error: shareError } = await supabase
           .from('mpc_shares')
           .insert({

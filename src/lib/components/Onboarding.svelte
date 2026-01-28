@@ -126,6 +126,7 @@
         tempShares.address,
         tempShares.publicKey,
         tempShares.backendShare,
+        tempShares.deviceShare, // Pass device share for ownership proof signature
       )
 
       if (!syncResult.success)
