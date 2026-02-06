@@ -244,25 +244,6 @@
               ></div>
             </button>
           </div>
-
-          <div class="flex justify-between items-center opacity-60">
-            <div class="space-y-1">
-              <div class="flex items-center gap-2">
-                <Cloud class="w-4 h-4 text-zinc-400" />
-                <p class="text-sm font-black italic text-white uppercase">
-                  Cloud Recovery
-                </p>
-              </div>
-              <p class="text-[9px] text-zinc-500">
-                Automatic encrypted platform sync active.
-              </p>
-            </div>
-            <div
-              class="px-2 py-1 rounded bg-zinc-800 text-[8px] font-black text-emerald-400 uppercase"
-            >
-              {$walletStore.hasCloudBackup ? "Synced" : "Not Set"}
-            </div>
-          </div>
         </div>
       </section>
 
