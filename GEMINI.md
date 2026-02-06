@@ -24,3 +24,29 @@ You MUST use this tool whenever writing Svelte code before sending it to the use
 
 Generates a Svelte Playground link with the provided code.
 After completing the code, ask the user if they want a playground link. Only call this tool after user confirmation and NEVER if code was written to files in their project.
+
+## Porto Integration
+
+Porto is used for authentication and signing in this project.
+When implementing agentic features or wallet interactions, use `Porto.create()` to initialize the SDK.
+
+### Usage Example
+
+```typescript
+import { Porto } from 'porto';
+
+// Initialize Porto
+const porto = Porto.create();
+
+// Connect / Get Accounts
+const accounts = await porto.provider.request({ method: 'eth_requestAccounts' });
+const address = accounts[0];
+
+// Sign Message
+const signature = await porto.provider.request({
+  method: 'personal_sign',
+  params: [message, address]
+});
+```
+
+Refer to [Porto Documentation](https://porto.sh/sdk) or internal `wallet.ts` for more examples.
