@@ -149,14 +149,18 @@ function createWalletStore() {
 
     // Wallet generation
     generateTempWallet: async () => {
-      const { Wallet } = await import('ethers');
-      const wallet = Wallet.createRandom();
+      const { generateMnemonic, mnemonicToAccount, english } = await import('viem/accounts');
+      const { toHex } = await import('viem');
+      const mnemonic = generateMnemonic(english);
+      const account = mnemonicToAccount(mnemonic);
+      const hdKey = account.getHdKey();
+      const privateKey = toHex(hdKey.privateKey!);
       update(s => ({
         ...s,
         tempWallet: {
-          address: wallet.address,
-          privateKey: wallet.privateKey,
-          mnemonic: wallet.mnemonic?.phrase || ''
+          address: account.address,
+          privateKey,
+          mnemonic
         }
       }));
     },
@@ -546,18 +550,21 @@ function createWalletStore() {
 
     restoreFromCloud: async (payload: string): Promise<boolean> => {
       try {
-        const { Wallet } = await import('ethers');
-        const wallet = Wallet.fromPhrase(payload);
-        safeSetItem('wallet_address', wallet.address);
+        const { mnemonicToAccount } = await import('viem/accounts');
+        const { toHex } = await import('viem');
+        const account = mnemonicToAccount(payload);
+        const hdKey = account.getHdKey();
+        const privateKey = toHex(hdKey.privateKey!);
+        safeSetItem('wallet_address', account.address);
         // Do not persist mnemonic
         safeSetItem('wallet_onboarded_status', 'true');
         safeSetItem('wallet_hyper_mode', 'false');
         update(s => ({
           ...s,
-          address: wallet.address,
+          address: account.address,
           mnemonic: payload,
-          privateKey: wallet.privateKey,
-          tempWallet: { address: wallet.address, privateKey: wallet.privateKey, mnemonic: payload },
+          privateKey,
+          tempWallet: { address: account.address, privateKey, mnemonic: payload },
           isOnboarded: true,
           isLocked: false,
           isHyperMode: false,

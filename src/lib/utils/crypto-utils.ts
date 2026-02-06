@@ -1,4 +1,5 @@
-import { Wallet, getBytes, hexlify } from 'ethers';
+import { toBytes, toHex } from "viem";
+import { generateMnemonic, mnemonicToAccount, english, generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 // Buffer conversion utilities
 export function bufferToBase64(buffer: ArrayBuffer): string {
@@ -33,11 +34,15 @@ export function base64urlToArrayBuffer(base64url: string): ArrayBuffer {
 
 // Wallet generation
 export function generateWalletData(): { mnemonic: string; privateKey: string; address: string } {
-  const wallet = Wallet.createRandom();
+  const mnemonic = generateMnemonic(english);
+  const account = mnemonicToAccount(mnemonic);
+  // Get the HD key to access the private key
+  const hdKey = account.getHdKey();
+  const privateKey = toHex(hdKey.privateKey!);
   return {
-    mnemonic: wallet.mnemonic?.phrase || '',
-    privateKey: wallet.privateKey,
-    address: wallet.address,
+    mnemonic,
+    privateKey,
+    address: account.address,
   };
 }
 
@@ -104,7 +109,7 @@ export async function decryptScoped(encryptedB64: string): Promise<string> {
 // Private key payload encryption for passkey storage
 export async function createPrivPayload(keyB64: string, privHex: string): Promise<ArrayBuffer> {
   const hex = privHex.startsWith('0x') ? privHex : '0x' + privHex;
-  const privBytes = getBytes(hex);
+  const privBytes = toBytes(hex as `0x${string}`);
   if (privBytes.length !== 32) throw new Error("Invalid Private Key Length");
   const keyBuffer = base64ToBuffer(keyB64);
   const cryptoKey = await crypto.subtle.importKey(
@@ -147,7 +152,7 @@ export async function decryptPrivPayload(keyB64: string, payloadB64: string): Pr
   );
   const privBytes = new Uint8Array(privBytesBuffer);
   if (privBytes.length !== 32) throw new Error(`Invalid decrypted private key length: ${privBytes.length}`);
-  return hexlify(privBytes).replace('0x', '');
+  return toHex(privBytes).replace('0x', '');
 }
 
 // WebAuthn Passkey Registration
