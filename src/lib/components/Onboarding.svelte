@@ -139,13 +139,11 @@
           deviceShare: tempShares.deviceShare,
         },
         syncResult.walletId,
+        !skipBackup
       )
 
       if (skipBackup) {
-        // If skipped backup, walletStore.commitMPCWallet might set hasCloudBackup=true?
-        // No, commitMPCWallet sets it to true currently.
-        // We should fix commitMPCWallet to accept a flag, but for now let's live with it
-        // OR manually patch the store state here if we really care about accuracy.
+        // Backup skipped, properly recorded in store now.
       }
 
       step = 3 // Move to Success/Shield (Step 3)

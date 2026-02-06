@@ -237,14 +237,14 @@ function createWalletStore() {
     },
 
     // Step 3: Commit and Persist (Finalize)
-    commitMPCWallet: (shares: any, walletId: string) => {
+    commitMPCWallet: (shares: any, walletId: string, hasCloudBackup: boolean = true) => {
       if (browser) {
         localStorage.setItem('wallet_address', shares.address);
         localStorage.setItem('wallet_device_share', shares.deviceShare);
         localStorage.setItem('wallet_is_mpc', 'true');
         localStorage.setItem('wallet_mpc_id', walletId);
         localStorage.setItem('wallet_onboarded_status', 'true');
-        localStorage.setItem('wallet_cloud_backup_active', 'true');
+        localStorage.setItem('wallet_cloud_backup_active', String(hasCloudBackup));
       }
 
       update(s => ({
@@ -253,7 +253,7 @@ function createWalletStore() {
         deviceShare: shares.deviceShare,
         mpcWalletId: walletId,
         isMPC: true,
-        hasCloudBackup: true,
+        hasCloudBackup,
         isOnboarded: true,
         isLocked: false,
         lastActive: new Date()
