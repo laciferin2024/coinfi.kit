@@ -1,5 +1,5 @@
-import { toBytes, toHex } from "viem";
-import { generateMnemonic, mnemonicToAccount, english, generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { toBytes, toHex } from 'viem';
+import { generateMnemonic, mnemonicToAccount, english } from 'viem/accounts';
 
 // Buffer conversion utilities
 export function bufferToBase64(buffer: ArrayBuffer): string {
@@ -36,7 +36,6 @@ export function base64urlToArrayBuffer(base64url: string): ArrayBuffer {
 export function generateWalletData(): { mnemonic: string; privateKey: string; address: string } {
   const mnemonic = generateMnemonic(english);
   const account = mnemonicToAccount(mnemonic);
-  // Get the HD key to access the private key
   const hdKey = account.getHdKey();
   const privateKey = toHex(hdKey.privateKey!);
   return {
@@ -108,8 +107,8 @@ export async function decryptScoped(encryptedB64: string): Promise<string> {
 
 // Private key payload encryption for passkey storage
 export async function createPrivPayload(keyB64: string, privHex: string): Promise<ArrayBuffer> {
-  const hex = privHex.startsWith('0x') ? privHex : '0x' + privHex;
-  const privBytes = toBytes(hex as `0x${string}`);
+  const hex = (privHex.startsWith('0x') ? privHex : '0x' + privHex) as `0x${string}`;
+  const privBytes = toBytes(hex);
   if (privBytes.length !== 32) throw new Error("Invalid Private Key Length");
   const keyBuffer = base64ToBuffer(keyB64);
   const cryptoKey = await crypto.subtle.importKey(
