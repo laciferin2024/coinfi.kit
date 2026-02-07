@@ -3,28 +3,31 @@
   import { goto } from "$app/navigation"
   import { browser } from "$app/environment"
   import {
-    Search,
-    ShieldCheck,
-    TrendingUp,
-    Globe,
-    Clock,
     Link2,
+    ShieldCheck,
+    Smartphone,
+    Globe,
+    Trash2,
+    QrCode,
+    Check,
+    X,
+    Zap,
   } from "lucide-svelte"
 
   import { walletStore } from "$lib/stores/wallet"
-  import type { Protocol } from "$lib/types"
+  import {
+    wcStore,
+    initWalletConnect,
+    pairWithUri,
+    approveSession,
+    rejectSession,
+    disconnectSession,
+  } from "$lib/walletconnect"
+  import Button from "$lib/components/ui/Button.svelte"
 
-  import { DAPPS } from "$lib/data/dapps"
-  import DAppDetailModal from "$lib/components/dapps/DAppDetailModal.svelte"
-  import DAppIcon from "$lib/components/ui/DAppIcon.svelte"
-  import WalletConnectModal from "$lib/components/ui/WalletConnectModal.svelte"
-
-  let searchQuery = $state("")
-  let activeTab = $state("All")
-  let selectedDapp = $state<Protocol | null>(null)
-  let showWalletConnect = $state(false)
-
-  const categories = ["All", "DeFi", "NFTs", "Social", "Staking"]
+  let wcUri = $state("")
+  let isPairing = $state(false)
+  let error = $state("")
 
   onMount(() => {
     if (browser) {
@@ -37,200 +40,297 @@
       }
 
       if ($walletStore.isLocked) {
-        walletStore.unlockWallet()
+        goto("/")
+        return
+      }
+
+      // Initialize WalletConnect
+      if ($walletStore.address && !$wcStore.initialized) {
+        initWalletConnect($walletStore.address)
       }
     }
   })
 
-  let filteredDapps = $derived(
-    DAPPS.filter((dapp) => {
-      const matchesSearch =
-        dapp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        dapp.category.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesTab = activeTab === "All" || dapp.category === activeTab
-      return matchesSearch && matchesTab
-    }),
-  )
+  async function handlePair() {
+    if (!wcUri.trim()) {
+      error = "Please enter a WalletConnect URI"
+      return
+    }
 
-  function openDapp(dapp: Protocol) {
-    selectedDapp = dapp
+    isPairing = true
+    error = ""
+
+    const success = await pairWithUri(wcUri.trim())
+
+    if (!success) {
+      error = "Failed to pair. Check the URI and try again."
+    }
+
+    isPairing = false
+    wcUri = ""
   }
 
-  function formatTimeAgo(timestamp: number): string {
-    const diff = Date.now() - timestamp
-    const minutes = Math.floor(diff / 60000)
-    if (minutes < 60) return `${minutes}m ago`
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours}h ago`
-    const days = Math.floor(hours / 24)
-    return `${days}d ago`
+  async function handleApprove() {
+    await approveSession()
+  }
+
+  async function handleReject() {
+    await rejectSession()
+  }
+
+  async function handleDisconnect(topic: string) {
+    await disconnectSession(topic)
   }
 </script>
 
-{#if selectedDapp}
-  <DAppDetailModal
-    protocol={selectedDapp}
-    onClose={() => (selectedDapp = null)}
-  />
-{/if}
-
-{#if showWalletConnect}
-  <WalletConnectModal onClose={() => (showWalletConnect = false)} />
-{/if}
-
-<div class="min-h-full">
+<div class="min-h-full pb-24">
   <div class="max-w-7xl mx-auto px-4">
+    <!-- Header -->
     <header
       class="sticky top-0 z-30 py-6 bg-black/90 backdrop-blur-xl border-b border-white/5"
     >
-      <div class="flex items-center justify-between">
-        <div class="w-20"></div>
-        <div class="text-center">
-          <h1
-            class="text-2xl font-black italic uppercase tracking-tighter text-white"
-          >
-            EXPLORE
-          </h1>
-          <p class="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">
-            AI-Guarded Ecosystem
-          </p>
-        </div>
-        <div class="w-20 flex justify-end">
-          <button
-            onclick={() => (showWalletConnect = true)}
-            class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 text-[10px] font-bold text-blue-400 hover:border-blue-400 transition-colors"
-          >
-            <Link2 class="w-3 h-3" />
-            WC
-          </button>
-        </div>
+      <div class="text-center">
+        <h1
+          class="text-2xl font-black italic uppercase tracking-tighter text-white"
+        >
+          CONNECT
+        </h1>
+        <p class="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">
+          Any DApp • Any Network • AI Protected
+        </p>
       </div>
     </header>
 
-    <main class="py-8 space-y-10 pb-24">
-      <!-- Search -->
-      <div class="space-y-6">
-        <div class="relative">
-          <Search
-            class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"
-          />
-          <input
-            type="text"
-            placeholder="Search protocols..."
-            bind:value={searchQuery}
-            class="w-full pl-12 pr-4 h-14 bg-zinc-900 border border-white/5 rounded-2xl text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500/50 transition-colors"
-          />
-        </div>
-
-        <!-- Category Tabs -->
-        <div class="flex gap-2 overflow-x-auto scrollbar-none">
-          {#each categories as cat}
-            <button
-              onclick={() => (activeTab = cat)}
-              class="px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors {activeTab ===
-              cat
-                ? 'bg-orange-600 text-white'
-                : 'bg-zinc-900 text-zinc-500 border border-white/5'}"
-            >
-              {cat}
-            </button>
-          {/each}
-        </div>
-      </div>
-
-      <!-- Recent DApps -->
-      {#if $walletStore.recentDapps && $walletStore.recentDapps.length > 0}
-        <section class="space-y-4">
-          <div class="flex items-center gap-2 text-zinc-400">
-            <Clock class="w-4 h-4" />
-            <h3 class="text-[10px] font-black uppercase tracking-widest">
-              Recently Used
-            </h3>
+    <main class="py-8 space-y-8">
+      <!-- Session Proposal -->
+      {#if $wcStore.pendingProposal}
+        <div
+          class="p-6 rounded-3xl bg-gradient-to-br from-orange-500/10 to-rose-500/10 border border-orange-500/30 space-y-5"
+        >
+          <div class="flex items-center gap-4">
+            <img
+              src={$wcStore.pendingProposal.params.proposer.metadata.icons[0] ||
+                ""}
+              alt=""
+              class="w-16 h-16 rounded-2xl bg-zinc-800 border-2 border-orange-500/30"
+            />
+            <div class="flex-1">
+              <p class="font-black text-white text-lg uppercase tracking-tight">
+                {$wcStore.pendingProposal.params.proposer.metadata.name}
+              </p>
+              <p class="text-xs text-zinc-400 font-mono">
+                {$wcStore.pendingProposal.params.proposer.metadata.url}
+              </p>
+            </div>
           </div>
-          <div class="flex gap-4 overflow-x-auto pb-4 scrollbar-none px-1">
-            {#each $walletStore.recentDapps as item}
-              {@const fullDapp = DAPPS.find((d) => d.id === item.id)}
-              {#if fullDapp}
-                <button
-                  onclick={() => openDapp(fullDapp)}
-                  class="flex flex-col items-center gap-2 shrink-0 group"
-                >
-                  <div
-                    class="group-hover:scale-105 transition-transform duration-300 shadow-glow"
-                  >
-                    <DAppIcon
-                      src={fullDapp.icon}
-                      name={fullDapp.name}
-                      size="lg"
-                    />
-                  </div>
-                  <span
-                    class="text-[10px] font-bold text-zinc-300 truncate w-16 text-center"
-                    >{fullDapp.name}</span
-                  >
-                  <span class="text-[8px] text-zinc-600 uppercase font-mono"
-                    >{formatTimeAgo(item.lastUsed)}</span
-                  >
-                </button>
+
+          <p class="text-sm text-zinc-300">
+            This DApp wants to connect to your wallet.
+          </p>
+
+          <div
+            class="flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30"
+          >
+            <ShieldCheck class="w-5 h-5 text-emerald-400" />
+            <span class="text-sm text-emerald-400 font-bold">
+              All transactions will be AI-protected
+            </span>
+          </div>
+
+          <div class="flex gap-3">
+            <Button
+              onclick={handleReject}
+              class="flex-1 h-14 rounded-2xl bg-zinc-800 border border-white/10 text-white font-black uppercase text-xs tracking-widest"
+            >
+              Reject
+            </Button>
+            <Button
+              onclick={handleApprove}
+              class="flex-1 h-14 rounded-2xl bg-gradient-to-r from-orange-600 to-rose-600 text-white font-black uppercase text-xs tracking-widest"
+            >
+              <Check class="w-4 h-4 mr-2" /> Connect
+            </Button>
+          </div>
+        </div>
+      {:else}
+        <!-- Hero Section -->
+        <div class="text-center py-8 space-y-6">
+          <div
+            class="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 flex items-center justify-center"
+          >
+            <Link2 class="w-12 h-12 text-blue-400" />
+          </div>
+          <div class="space-y-2">
+            <h2 class="text-xl font-black text-white uppercase tracking-tight">
+              WalletConnect
+            </h2>
+            <p class="text-sm text-zinc-500 max-w-xs mx-auto">
+              Connect to any DApp on any network. AI Guard protects every
+              transaction.
+            </p>
+          </div>
+        </div>
+
+        <!-- Pair Input -->
+        <div
+          class="space-y-4 p-6 rounded-3xl bg-zinc-900/50 border border-white/5"
+        >
+          <label
+            class="text-[10px] font-bold uppercase text-zinc-500 tracking-widest flex items-center gap-2"
+          >
+            <QrCode class="w-3 h-3" /> Paste WalletConnect URI
+          </label>
+          <div class="flex gap-3">
+            <input
+              type="text"
+              placeholder="wc:..."
+              bind:value={wcUri}
+              class="flex-1 px-4 py-4 bg-black border border-white/10 rounded-2xl text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 font-mono"
+            />
+            <Button
+              onclick={handlePair}
+              disabled={isPairing}
+              class="px-6 rounded-2xl bg-gradient-to-r from-orange-600 to-rose-600 text-white font-black uppercase text-xs"
+            >
+              {#if isPairing}
+                <span class="animate-spin">⏳</span>
+              {:else}
+                Pair
               {/if}
-            {/each}
+            </Button>
           </div>
-        </section>
-      {/if}
+          {#if error}
+            <p class="text-xs text-rose-400">{error}</p>
+          {/if}
+        </div>
 
-      <!-- Discovery Feed -->
-      <section class="space-y-4">
-        <div class="flex items-center justify-between">
+        <!-- How It Works -->
+        <div
+          class="p-6 rounded-3xl bg-zinc-900/30 border border-white/5 space-y-4"
+        >
           <h3
-            class="text-sm font-black uppercase tracking-widest text-zinc-400 italic"
+            class="text-[10px] font-bold uppercase text-zinc-500 tracking-widest"
           >
-            Discovery Feed
+            How It Works
           </h3>
-          <span
-            class="px-2 py-1 rounded text-[10px] uppercase font-bold text-orange-400 border border-orange-500/30 bg-orange-500/5"
-            >AI Audited</span
-          >
+          <div class="space-y-3">
+            <div class="flex items-start gap-3">
+              <div
+                class="w-6 h-6 rounded-full bg-orange-500/20 text-orange-500 text-xs font-bold flex items-center justify-center shrink-0"
+              >
+                1
+              </div>
+              <p class="text-sm text-zinc-400">
+                Open any DApp and click <span class="text-white font-medium"
+                  >Connect Wallet</span
+                >
+              </p>
+            </div>
+            <div class="flex items-start gap-3">
+              <div
+                class="w-6 h-6 rounded-full bg-orange-500/20 text-orange-500 text-xs font-bold flex items-center justify-center shrink-0"
+              >
+                2
+              </div>
+              <p class="text-sm text-zinc-400">
+                Select <span class="text-white font-medium">WalletConnect</span> and
+                copy the URI
+              </p>
+            </div>
+            <div class="flex items-start gap-3">
+              <div
+                class="w-6 h-6 rounded-full bg-orange-500/20 text-orange-500 text-xs font-bold flex items-center justify-center shrink-0"
+              >
+                3
+              </div>
+              <p class="text-sm text-zinc-400">
+                Paste here and <span class="text-white font-medium">Pair</span> -
+                AI Guard does the rest
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-4">
-          {#each filteredDapps as dapp, idx}
-            <button
-              onclick={() => openDapp(dapp)}
-              class="p-5 rounded-[2rem] border transition-all duration-300 flex items-center gap-5 group cursor-pointer text-left {$walletStore.isHyperMode
-                ? 'bg-orange-950/10 border-orange-500/20 hover:border-orange-400'
-                : 'bg-zinc-900 border-white/5 hover:bg-zinc-800'}"
+        <!-- Connected DApps -->
+        {#if $wcStore.sessions.length > 0}
+          <div class="space-y-4">
+            <h3
+              class="text-[10px] font-bold uppercase text-zinc-500 tracking-widest flex items-center gap-2 px-2"
             >
-              <div
-                class="group-hover:scale-110 transition-transform shadow-glow"
-              >
-                <DAppIcon src={dapp.icon} name={dapp.name} size="lg" />
-              </div>
-              <div class="flex-1 space-y-1 overflow-hidden">
-                <div class="flex items-center justify-between">
-                  <h4 class="font-bold text-zinc-100 italic">{dapp.name}</h4>
-                  {#if dapp.verified}
-                    <ShieldCheck class="w-4 h-4 text-orange-400 shrink-0" />
-                  {/if}
+              <Globe class="w-3 h-3" /> Connected DApps ({$wcStore.sessions
+                .length})
+            </h3>
+            <div class="space-y-3">
+              {#each $wcStore.sessions as session}
+                <div
+                  class="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900 border border-white/5 hover:border-white/10 transition-colors"
+                >
+                  <img
+                    src={session.peer.icons[0] || ""}
+                    alt=""
+                    class="w-12 h-12 rounded-xl bg-zinc-800"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <p class="font-bold text-white truncate">
+                      {session.peer.name}
+                    </p>
+                    <p class="text-[10px] text-zinc-500 truncate font-mono">
+                      {session.peer.url}
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div
+                      class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20"
+                    >
+                      <div
+                        class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
+                      ></div>
+                      <span
+                        class="text-[9px] font-bold text-emerald-400 uppercase"
+                        >Live</span
+                      >
+                    </div>
+                    <button
+                      onclick={() => handleDisconnect(session.topic)}
+                      class="p-2 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                    >
+                      <Trash2 class="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <p class="text-xs text-zinc-500 leading-snug line-clamp-1">
-                  {dapp.desc}
-                </p>
-                <div class="flex items-center gap-3 pt-1">
-                  <span class="text-[10px] font-mono text-zinc-400 uppercase"
-                    >{dapp.category}</span
-                  >
-                  <span
-                    class="text-[10px] font-mono text-orange-400 flex items-center gap-1"
-                  >
-                    <TrendingUp class="w-3 h-3" />
-                    {dapp.users}
-                  </span>
-                </div>
-              </div>
-            </button>
-          {/each}
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        <!-- Features -->
+        <div class="grid grid-cols-3 gap-3 pt-4">
+          <div
+            class="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 text-center space-y-2"
+          >
+            <Zap class="w-5 h-5 text-orange-500 mx-auto" />
+            <p class="text-[10px] font-bold text-zinc-400 uppercase">
+              Any Chain
+            </p>
+          </div>
+          <div
+            class="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 text-center space-y-2"
+          >
+            <ShieldCheck class="w-5 h-5 text-emerald-500 mx-auto" />
+            <p class="text-[10px] font-bold text-zinc-400 uppercase">
+              AI Guard
+            </p>
+          </div>
+          <div
+            class="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 text-center space-y-2"
+          >
+            <Globe class="w-5 h-5 text-blue-500 mx-auto" />
+            <p class="text-[10px] font-bold text-zinc-400 uppercase">
+              Any DApp
+            </p>
+          </div>
         </div>
-      </section>
+      {/if}
     </main>
   </div>
 </div>

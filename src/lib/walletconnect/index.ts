@@ -5,9 +5,10 @@ import { Core } from '@walletconnect/core';
 import { Web3Wallet, type Web3WalletTypes } from '@walletconnect/web3wallet';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import { writable, get } from 'svelte/store';
+import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
 
 // WalletConnect Project ID - Get from https://cloud.walletconnect.com
-const PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'demo-project-id';
+const PROJECT_ID = PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id';
 
 // Supported chains (Sepolia testnets)
 const SUPPORTED_CHAINS = [
