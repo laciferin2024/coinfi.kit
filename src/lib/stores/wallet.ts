@@ -132,8 +132,11 @@ function createWalletStore() {
     // Porto Connection
     connectPorto: async () => {
       try {
+        console.log('[Store] Initializing Porto...');
         const porto = Porto.create();
+        console.log('[Store] Requesting accounts...');
         const accounts = await porto.provider.request({ method: 'eth_requestAccounts' });
+        console.log('[Store] Accounts received:', accounts);
 
         if (accounts && accounts.length > 0) {
           const address = accounts[0];
@@ -152,10 +155,13 @@ function createWalletStore() {
           }));
           return { success: true, address };
         }
+        console.warn('[Store] No accounts returned from Porto');
         return { success: false, error: 'No accounts returned' };
       } catch (e: any) {
         console.error('[Store] Porto connection failed:', e);
-        return { success: false, error: e.message };
+        // Safely extract error message
+        const errorMessage = e?.message || e?.toString() || 'Unknown error';
+        return { success: false, error: errorMessage };
       }
     },
 
@@ -165,6 +171,51 @@ function createWalletStore() {
         localStorage.clear();
         window.location.href = '/';
       }
+    },
+
+    // Restore Connection
+    restoreConnection: async () => {
+      if (!browser || safeGetItem('wallet_onboarded_status') !== 'true') return;
+
+      // Check if we already have an address in the store (loaded from localStorage)
+      // If we do, we assume the session is valid or at least we don't need to re-request immediately
+      // to avoid loops.
+      const currentAddress = safeGetItem('wallet_address');
+      if (currentAddress) {
+        update(s => ({
+          ...s,
+          address: currentAddress,
+          isOnboarded: true,
+          isLocked: false, // Unlock on restore
+          lastActive: new Date()
+        }));
+        return true;
+      }
+
+      try {
+        const porto = Porto.create();
+        // Check if we can get accounts without prompting (session exists)
+        // eth_requestAccounts might prompt, but if authorized, it returns immediately.
+        // For a true "check session" we might need a different method if Porto supports it, 
+        // but typically requestAccounts handles re-connection if the session is alive.
+        const accounts = await porto.provider.request({ method: 'eth_requestAccounts' });
+
+        if (accounts && accounts.length > 0) {
+          const address = accounts[0];
+          update(s => ({
+            ...s,
+            address,
+            isOnboarded: true,
+            isLocked: false, // Unlock on restore for convenience
+            lastActive: new Date()
+          }));
+          console.log('[Store] Porto connection restored:', address);
+          return true;
+        }
+      } catch (e) {
+        console.log('[Store] Failed to restore Porto connection:', e);
+      }
+      return false;
     },
 
     // Lock/Unlock

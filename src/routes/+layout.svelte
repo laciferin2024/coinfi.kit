@@ -30,6 +30,11 @@
     }
   })
 
+  // Restore Porto Session on Mount
+  onMount(() => {
+    walletStore.restoreConnection()
+  })
+
   // Bridge WalletConnect pending requests AND proposals to walletStore.externalRequest
   $effect(() => {
     // Handle Requests
@@ -69,26 +74,33 @@
     {#if $walletStore.isHyperMode}
       <!-- Hyper Mode Background -->
       <div
-        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[700px] bg-orange-600/30 rounded-full blur-[150px] animate-pulse"
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[700px] bg-orange-600/20 rounded-full blur-[120px] animate-pulse"
       ></div>
       <div
-        class="absolute -bottom-20 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-orange-500/40 rounded-full blur-[100px]"
+        class="absolute -bottom-20 left-1/2 -translate-x-1/2 w-[400px] h-[300px] bg-rose-500/20 rounded-full blur-[100px]"
       ></div>
     {:else}
       <!-- Default Background -->
       <div
-        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-[150px]"
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[800px] bg-indigo-900/20 rounded-full blur-[150px]"
+      ></div>
+      <div
+        class="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px]"
       ></div>
     {/if}
+    <!-- Grid Pattern -->
+    <div
+      class="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-20"
+    ></div>
   </div>
 
   <!-- Phone Frame -->
   <div
-    class="relative w-full max-w-[400px] aspect-[9/19.5] rounded-[3rem] shadow-2xl overflow-hidden transition-all duration-500 border-[6px] border-zinc-800 bg-zinc-950 flex flex-col"
+    class="relative w-full max-w-[400px] aspect-[9/19.5] rounded-[3.5rem] shadow-2xl overflow-hidden transition-all duration-500 border-[8px] border-zinc-900 bg-zinc-950 flex flex-col ring-1 ring-white/10"
   >
     <!-- Screen Content -->
     <div
-      class="absolute inset-0 bg-black rounded-[2.5rem] overflow-hidden flex flex-col"
+      class="absolute inset-0 bg-zinc-950 rounded-[3rem] overflow-hidden flex flex-col"
     >
       <div class="flex-1 overflow-y-auto relative scrollbar-none">
         {@render children()}
@@ -96,7 +108,9 @@
 
       <!-- Navigation -->
       {#if showNav}
-        <div class="shrink-0 w-full pb-6 pt-2 px-4 z-50">
+        <div
+          class="shrink-0 w-full pb-8 pt-4 px-6 z-50 bg-gradient-to-t from-black/90 to-transparent"
+        >
           <Nav />
         </div>
       {/if}
