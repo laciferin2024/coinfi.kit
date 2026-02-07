@@ -1,10 +1,18 @@
 <script lang="ts">
+  import { goto } from "$app/navigation"
   import { ArrowRight, Loader2 } from "lucide-svelte"
   import { walletStore } from "$lib/stores/wallet"
   import ModernButton from "$lib/components/ui/ModernButton.svelte"
 
   let isLoading = $state(false)
   let error = $state("")
+
+  // Auto-redirect if already onboarded (e.g. via restoreConnection)
+  $effect(() => {
+    if ($walletStore.isOnboarded && $walletStore.address) {
+      goto("/home")
+    }
+  })
 
   async function handleConnect() {
     isLoading = true
@@ -14,7 +22,7 @@
       if (!result.success) {
         throw new Error(result.error || "Failed to connect")
       }
-      // Success is handled by store update -> navigation
+      // Success will trigger the $effect above to redirect
     } catch (e: any) {
       console.error(e)
       error = e.message || "Connection failed. Please try again."
