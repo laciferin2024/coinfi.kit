@@ -1,5 +1,6 @@
 <script lang="ts">
   import "../app.css"
+  import { onMount } from "svelte"
   import { page } from "$app/stores"
   import Nav from "$lib/components/layout/nav.svelte"
   import { walletStore } from "$lib/stores/wallet"
@@ -7,6 +8,7 @@
   import DAppBrowser from "$lib/components/dapps/DAppBrowser.svelte"
   import { DAPPS } from "$lib/data/dapps"
   import AIGuardModal from "$lib/components/ui/AIGuardModal.svelte"
+  import { wcStore, initWalletConnect } from "$lib/walletconnect"
 
   interface Props {
     children: Snippet
@@ -21,6 +23,26 @@
     authenticatedRoutes.some((route) => $page.url.pathname.startsWith(route)),
   )
   let showPhoneFrame = true
+
+  // Initialize WalletConnect when wallet is ready
+  onMount(() => {
+    if ($walletStore.address && !$wcStore.initialized) {
+      initWalletConnect($walletStore.address)
+    }
+  })
+
+  // Bridge WalletConnect pending requests to walletStore.externalRequest
+  $effect(() => {
+    if ($wcStore.pendingRequest && !$walletStore.externalRequest) {
+      const req = $wcStore.pendingRequest
+      walletStore.setExternalRequest({
+        id: req.id.toString(),
+        type: req.method as any,
+        payload: req.params,
+        origin: req.peer.url || req.peer.name,
+      })
+    }
+  })
 </script>
 
 <svelte:head>

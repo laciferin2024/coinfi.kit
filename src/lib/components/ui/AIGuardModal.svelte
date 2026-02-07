@@ -10,6 +10,7 @@
     AlertTriangle,
   } from "lucide-svelte"
   import { walletStore } from "$lib/stores/wallet"
+  import { wcStore, respondToRequest } from "$lib/walletconnect"
   import GuardConsole from "./GuardConsole.svelte"
   import Button from "./Button.svelte"
   import DAppIcon from "./DAppIcon.svelte"
@@ -62,12 +63,22 @@
 
   async function handleApprove() {
     status = "approving"
-    // Simulate signing
+
+    // TODO: Actually sign the transaction with Porto
+    // For now, simulate signing
     await new Promise((resolve) => setTimeout(resolve, 1500))
+
+    // Mock transaction hash for demo
+    const mockTxHash = `0x${Date.now().toString(16)}${"0".repeat(48)}`
+
     status = "success"
 
-    // Simulate response to DApp (postMessage would happen here)
-    console.log("DApp Request Approved")
+    // Respond to WalletConnect if this was a WC request
+    if ($wcStore.pendingRequest) {
+      await respondToRequest(true, mockTxHash)
+    }
+
+    console.log("[AI Guard] Transaction Approved:", mockTxHash)
 
     setTimeout(() => {
       walletStore.setExternalRequest(null)
@@ -75,7 +86,12 @@
     }, 1500)
   }
 
-  function handleReject() {
+  async function handleReject() {
+    // Respond to WalletConnect if this was a WC request
+    if ($wcStore.pendingRequest) {
+      await respondToRequest(false)
+    }
+
     walletStore.setExternalRequest(null)
     onClose()
   }
