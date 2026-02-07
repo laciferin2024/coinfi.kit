@@ -7,6 +7,7 @@
     ArrowUpRight,
     Check,
     AlertCircle,
+    AlertTriangle,
   } from "lucide-svelte"
   import { walletStore } from "$lib/stores/wallet"
   import GuardConsole from "./GuardConsole.svelte"
@@ -14,6 +15,7 @@
   import DAppIcon from "./DAppIcon.svelte"
   import { fly } from "svelte/transition"
   import { DAPPS } from "$lib/data/dapps"
+  import type { AIGuardResponse, RiskLevel } from "$lib/ai-guard/types"
 
   interface Props {
     onClose: () => void
@@ -29,10 +31,32 @@
   let status = $state<"simulating" | "ready" | "approving" | "success">(
     "simulating",
   )
-  let verdict = $state<"safe" | "caution" | "high" | null>(null)
+  let verdict = $state<RiskLevel | null>(null)
+  let guardResponse = $state<AIGuardResponse | null>(null)
 
-  function handleGuardComplete(v: "safe" | "caution" | "high") {
+  // Extract transaction data from request
+  let transactionData = $derived(() => {
+    if (!request || request.type !== "eth_sendTransaction") return null
+    const payload = request.payload as any
+    return {
+      chainId:
+        $walletStore.activeNetworkId === "base-sepolia"
+          ? 84532
+          : $walletStore.activeNetworkId === "optimism-sepolia"
+            ? 11155420
+            : $walletStore.activeNetworkId === "odyssey"
+              ? 911867
+              : 84532,
+      from: $walletStore.address || "",
+      to: payload?.to || "",
+      value: payload?.value || "0",
+      data: payload?.data || "0x",
+    }
+  })
+
+  function handleGuardComplete(v: RiskLevel, response: AIGuardResponse | null) {
     verdict = v
+    guardResponse = response
     status = "ready"
   }
 
@@ -54,6 +78,22 @@
   function handleReject() {
     walletStore.setExternalRequest(null)
     onClose()
+  }
+
+  function getVerdictColor() {
+    if (!verdict) return "orange"
+    switch (verdict) {
+      case "low":
+        return "emerald"
+      case "medium":
+        return "yellow"
+      case "high":
+        return "rose"
+      case "blocked":
+        return "red"
+      default:
+        return "orange"
+    }
   }
 </script>
 
@@ -158,7 +198,10 @@
                 Active
               </div>
             </div>
-            <GuardConsole onComplete={handleGuardComplete} />
+            <GuardConsole
+              transactionData={transactionData()}
+              onComplete={handleGuardComplete}
+            />
           </div>
         {/if}
 
