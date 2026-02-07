@@ -169,20 +169,23 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
 
     let html = await response.text();
 
-    // Inject our provider script at the very beginning of <head>
-    if (html.includes('<head>')) {
-      html = html.replace('<head>', '<head>' + PROVIDER_INJECTION_SCRIPT);
-    } else if (html.includes('<HEAD>')) {
-      html = html.replace('<HEAD>', '<HEAD>' + PROVIDER_INJECTION_SCRIPT);
-    } else {
-      // If no head tag, add to start
-      html = PROVIDER_INJECTION_SCRIPT + html;
-    }
-
-    // Rewrite relative URLs to absolute
+    // Parse base URL for rewriting
     const baseUrl = new URL(targetUrl);
 
-    // Rewrite src and href attributes
+    // Add base tag to ensure all relative URLs resolve to original domain
+    const baseTag = `<base href="${baseUrl.origin}/" />`;
+
+    // Inject our provider script at the very beginning of <head>
+    if (html.includes('<head>')) {
+      html = html.replace('<head>', '<head>' + baseTag + PROVIDER_INJECTION_SCRIPT);
+    } else if (html.includes('<HEAD>')) {
+      html = html.replace('<HEAD>', '<HEAD>' + baseTag + PROVIDER_INJECTION_SCRIPT);
+    } else {
+      // If no head tag, add to start
+      html = baseTag + PROVIDER_INJECTION_SCRIPT + html;
+    }
+
+    // Rewrite src and href attributes to absolute URLs
     html = html.replace(/(src|href)=["'](?!https?:\/\/|\/\/|data:|#)([^"']+)["']/g, (match, attr, path) => {
       const absoluteUrl = new URL(path, baseUrl).href;
       return `${attr}="${absoluteUrl}"`;

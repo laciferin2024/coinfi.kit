@@ -2,7 +2,14 @@
   import { onMount } from "svelte"
   import { goto } from "$app/navigation"
   import { browser } from "$app/environment"
-  import { Search, ShieldCheck, TrendingUp, Globe, Clock } from "lucide-svelte"
+  import {
+    Search,
+    ShieldCheck,
+    TrendingUp,
+    Globe,
+    Clock,
+    Link2,
+  } from "lucide-svelte"
 
   import { walletStore } from "$lib/stores/wallet"
   import type { Protocol } from "$lib/types"
@@ -10,10 +17,12 @@
   import { DAPPS } from "$lib/data/dapps"
   import DAppDetailModal from "$lib/components/dapps/DAppDetailModal.svelte"
   import DAppIcon from "$lib/components/ui/DAppIcon.svelte"
+  import WalletConnectModal from "$lib/components/ui/WalletConnectModal.svelte"
 
   let searchQuery = $state("")
   let activeTab = $state("All")
   let selectedDapp = $state<Protocol | null>(null)
+  let showWalletConnect = $state(false)
 
   const categories = ["All", "DeFi", "NFTs", "Social", "Staking"]
 
@@ -65,21 +74,37 @@
   />
 {/if}
 
+{#if showWalletConnect}
+  <WalletConnectModal onClose={() => (showWalletConnect = false)} />
+{/if}
+
 <div class="min-h-full">
   <div class="max-w-7xl mx-auto px-4">
     <header
       class="sticky top-0 z-30 py-6 bg-black/90 backdrop-blur-xl border-b border-white/5"
     >
-      <h1
-        class="text-2xl font-black italic uppercase tracking-tighter text-center text-white"
-      >
-        EXPLORE
-      </h1>
-      <p
-        class="text-[10px] text-zinc-500 uppercase tracking-widest mt-1 text-center"
-      >
-        AI-Guarded Ecosystem
-      </p>
+      <div class="flex items-center justify-between">
+        <div class="w-20"></div>
+        <div class="text-center">
+          <h1
+            class="text-2xl font-black italic uppercase tracking-tighter text-white"
+          >
+            EXPLORE
+          </h1>
+          <p class="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">
+            AI-Guarded Ecosystem
+          </p>
+        </div>
+        <div class="w-20 flex justify-end">
+          <button
+            onclick={() => (showWalletConnect = true)}
+            class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 text-[10px] font-bold text-blue-400 hover:border-blue-400 transition-colors"
+          >
+            <Link2 class="w-3 h-3" />
+            WC
+          </button>
+        </div>
+      </div>
     </header>
 
     <main class="py-8 space-y-10 pb-24">
