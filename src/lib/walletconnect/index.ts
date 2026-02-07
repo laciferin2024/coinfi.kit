@@ -78,7 +78,7 @@ export async function initWalletConnect(address: string): Promise<boolean> {
       core: core as any, // Type assertion for SDK compatibility
       metadata: {
         name: 'Coin OS',
-        description: 'AI-Powered OS for Ethereum Wallet',
+        description: 'AI-Powered OS for DApp Users',
         url: 'https://coinfi.ideomind.org',
         icons: ['https://coinfi.ideomind.org/logo.png'],
       },

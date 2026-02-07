@@ -47,10 +47,7 @@
 
 <svelte:head>
   <title>Coin OS</title>
-  <meta
-    name="description"
-    content="Coin OS — AI powered OS for Ethereum wallet"
-  />
+  <meta name="description" content="Coin OS — AI powered OS for DApp Users" />
 </svelte:head>
 
 <div class="dark min-h-screen w-full bg-black">

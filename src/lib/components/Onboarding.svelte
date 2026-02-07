@@ -57,7 +57,7 @@
         COIN OS
       </h1>
       <p class="text-[10px] text-zinc-500 tracking-[0.4em] uppercase font-bold">
-        AI POWERED OS FOR ETHEREUM WALLET
+        AI POWERED OS FOR ETHEREUM USERS
       </p>
     </div>
 
