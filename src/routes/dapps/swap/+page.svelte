@@ -168,12 +168,14 @@
           <!-- From Token -->
           <div class="space-y-2">
             <label
+              for="fromAmount"
               class="text-[10px] font-bold uppercase text-zinc-500 tracking-widest"
               >You Pay</label
             >
             <div class="p-4 rounded-2xl bg-zinc-800 border border-white/5">
               <div class="flex items-center justify-between gap-4">
                 <input
+                  id="fromAmount"
                   type="number"
                   placeholder="0.0"
                   bind:value={fromAmount}
@@ -227,12 +229,14 @@
           <!-- To Token -->
           <div class="space-y-2">
             <label
+              for="toAmount"
               class="text-[10px] font-bold uppercase text-zinc-500 tracking-widest"
               >You Receive</label
             >
             <div class="p-4 rounded-2xl bg-zinc-800 border border-white/5">
               <div class="flex items-center justify-between gap-4">
                 <input
+                  id="toAmount"
                   type="text"
                   placeholder="0.0"
                   value={toAmount}

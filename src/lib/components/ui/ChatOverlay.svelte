@@ -23,7 +23,7 @@
     ],
   )
   let isLoading = $state(false)
-  let chatContainer: HTMLDivElement
+  let chatContainer = $state<HTMLDivElement>()
 
   async function handleSubmit() {
     if (!query.trim() || isLoading) return

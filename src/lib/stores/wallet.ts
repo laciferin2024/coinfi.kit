@@ -71,13 +71,9 @@ export interface WalletState {
   version: string;
   address: string | null;
   ensName: string | null;
-  privateKey: string | null; // Keep for legacy/temp support if needed, or remove if strictly Porto
-  mnemonic: string | null;
-  credentialId: string | null;
   isLocked: boolean;
   isHyperMode: boolean;
   isOnboarded: boolean;
-  tempWallet: { address: string; privateKey: string; mnemonic: string } | null;
   activeNetworkId: string;
   customNetworks: Network[];
   nativeBalance: string;
@@ -100,16 +96,12 @@ export interface WalletState {
 // Initial state
 function createInitialState(): WalletState {
   return {
-    version: '3.0.0', // Bump version for migration
+    version: '3.1.0',
     address: safeGetItem('wallet_address'),
     ensName: null,
-    privateKey: null,
-    mnemonic: null,
-    credentialId: safeGetItem('wallet_credential_id'),
     isLocked: true,
     isHyperMode: safeGetItem('wallet_hyper_mode') === 'true',
     isOnboarded: safeGetItem('wallet_onboarded_status') === 'true',
-    tempWallet: null,
     activeNetworkId: safeGetItem('wallet_active_network_id') || GLOBAL_NETWORK.id,
     customNetworks: safeGetJSON<Network[]>('wallet_custom_networks', []),
     nativeBalance: '0.00',
@@ -167,52 +159,6 @@ function createWalletStore() {
       }
     },
 
-    // Wallet generation (Legacy/Temp - kept for compatibility if needed, but not used in Porto flow)
-    generateTempWallet: async () => {
-      const { generateMnemonic, mnemonicToAccount, english } = await import('viem/accounts');
-      const { toHex } = await import('viem');
-      const mnemonic = generateMnemonic(english);
-      const account = mnemonicToAccount(mnemonic);
-      const hdKey = account.getHdKey();
-      const privateKey = toHex(hdKey.privateKey!);
-      update(s => ({
-        ...s,
-        tempWallet: {
-          address: account.address,
-          privateKey,
-          mnemonic
-        }
-      }));
-    },
-
-    // Commit onboarding (Legacy/Temp wallet)
-    commitOnboarding: async (passkeyId: string | null = null) => {
-      const state = get({ subscribe });
-      if (!state.tempWallet) return;
-
-      safeSetItem('wallet_address', state.tempWallet.address);
-      safeSetItem('wallet_onboarded_status', 'true');
-
-      if (passkeyId) {
-        safeSetItem('wallet_credential_id', passkeyId);
-        safeSetItem('wallet_hyper_mode', 'true');
-      } else {
-        safeSetItem('wallet_hyper_mode', 'false');
-      }
-
-      update(s => ({
-        ...s,
-        address: s.tempWallet!.address,
-        mnemonic: s.tempWallet!.mnemonic,
-        credentialId: passkeyId,
-        isOnboarded: true,
-        isHyperMode: !!passkeyId,
-        isLocked: false,
-        tempWallet: null,
-        lastActive: new Date()
-      }));
-    },
-
     // Reset
     resetOnboarding: () => {
       if (browser) {
@@ -227,8 +173,6 @@ function createWalletStore() {
         update(s => ({
           ...s,
           isLocked: true,
-          privateKey: null,
-          mnemonic: null,
           ensName: null,
           txStatus: 'idle',
           simulationLogs: [],
