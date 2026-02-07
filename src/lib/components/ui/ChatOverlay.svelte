@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Send, X, Bot, User, Sparkles } from "lucide-svelte"
   import { scale, fly } from "svelte/transition"
-  import { afterUpdate } from "svelte"
+
   import type { AIGuardRequest } from "$lib/ai-guard/types"
 
   interface Props {
@@ -61,8 +61,9 @@
     }
   }
 
-  afterUpdate(() => {
-    if (chatContainer) {
+  $effect(() => {
+    // Auto-scroll when messages change
+    if (messages.length && chatContainer) {
       chatContainer.scrollTop = chatContainer.scrollHeight
     }
   })

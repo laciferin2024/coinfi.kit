@@ -16,8 +16,8 @@
   }: Props = $props()
 
   let displayedScore = $state(0)
-  const radius = (size - strokeWidth) / 2
-  const circumference = radius * 2 * Math.PI
+  let radius = $derived((size - strokeWidth) / 2)
+  let circumference = $derived(radius * 2 * Math.PI)
 
   let strokeDashoffset = $derived(
     circumference - (displayedScore / 100) * circumference,

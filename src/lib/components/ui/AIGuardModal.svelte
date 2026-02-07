@@ -1,3 +1,4 @@
+<script lang="ts">
   import {
     Shield,
     Lock,
@@ -161,7 +162,7 @@
             </div>
           </div>
           <button
-            onclick={() => showChat = !showChat}
+            onclick={() => (showChat = !showChat)}
             class="p-2 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-500 hover:text-indigo-400 transition-colors mr-2"
           >
             <MessageCircle class="w-5 h-5" />
