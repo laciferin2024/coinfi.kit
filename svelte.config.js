@@ -20,7 +20,12 @@ switch (process.env.ADAPTER_MODE) {
 
 let tag;
 try {
-  tag = execSync("git describe --tags || git rev-parse --short HEAD").toString().trim();
+  // Silence git stderr to avoid noisy "fatal: No names found" when no tags exist.
+  tag = execSync(
+    "git describe --tags 2>/dev/null || git rev-parse --short HEAD 2>/dev/null"
+  )
+    .toString()
+    .trim();
 } catch {
   tag = "v0.1.0-mia";
 }
