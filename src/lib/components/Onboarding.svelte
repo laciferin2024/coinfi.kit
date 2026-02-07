@@ -11,14 +11,14 @@
     isLoading = true
     errorMessage = ""
     try {
-      const result = await walletStore.connectPorto();
+      const result = await walletStore.connectPorto()
       if (result.success) {
         goto("/home")
       } else {
-        errorMessage = result.error || "Connection failed";
+        errorMessage = result.error || "Connection failed"
       }
     } catch (e: any) {
-      errorMessage = e.message || "Connection failed";
+      errorMessage = e.message || "Connection failed"
     } finally {
       isLoading = false
     }
@@ -32,14 +32,17 @@
   })
 </script>
 
-<div class="w-full h-full bg-black px-6 py-12 flex flex-col items-center justify-center overflow-hidden">
-  
+<div
+  class="w-full h-full bg-black px-6 py-12 flex flex-col items-center justify-center overflow-hidden"
+>
   <!-- WELCOME / START -->
   <div class="flex flex-col items-center gap-8 w-full max-w-sm">
-    <div class="relative group cursor-pointer hover:scale-105 transition-transform duration-500">
+    <div
+      class="relative group cursor-pointer hover:scale-105 transition-transform duration-500"
+    >
       <img
         src="/logo.png"
-        alt="CoinFi"
+        alt="Coin OS"
         class="w-32 h-32 rounded-3xl shadow-2xl shadow-orange-500/20"
       />
       <div
@@ -48,13 +51,13 @@
         <span class="text-white text-lg font-bold">₵</span>
       </div>
     </div>
-    
+
     <div class="text-center space-y-3">
       <h1 class="text-5xl font-black text-white italic tracking-tight">
-        COIN FI
+        COIN OS
       </h1>
       <p class="text-[10px] text-zinc-500 tracking-[0.4em] uppercase font-bold">
-        UNLIMITED SELF CUSTODIAL WALLET
+        AI POWERED OS FOR ETHEREUM WALLET
       </p>
     </div>
 
@@ -74,22 +77,21 @@
 
       {#if errorMessage}
         <div class="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
-          <p class="text-[10px] text-rose-500 font-bold uppercase text-center tracking-wider">
+          <p
+            class="text-[10px] text-rose-500 font-bold uppercase text-center tracking-wider"
+          >
             {errorMessage}
           </p>
         </div>
       {/if}
     </div>
-    
+
     <div class="pt-8 flex flex-col items-center gap-2 opacity-60">
-        <p class="text-[8px] text-zinc-600 uppercase tracking-widest">
-            POWERED BY PORTO
-        </p>
-        <div class="w-1 h-1 rounded-full bg-zinc-800"></div>
-        <p class="text-[8px] text-zinc-700 uppercase tracking-widest">
-            v3.0.0
-        </p>
+      <p class="text-[8px] text-zinc-600 uppercase tracking-widest">
+        POWERED BY PORTO
+      </p>
+      <div class="w-1 h-1 rounded-full bg-zinc-800"></div>
+      <p class="text-[8px] text-zinc-700 uppercase tracking-widest">v3.0.0</p>
     </div>
   </div>
-
 </div>

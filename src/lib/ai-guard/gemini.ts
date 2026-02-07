@@ -64,7 +64,7 @@ function buildPrompt(
   twoD: TwoDAnalysis,
   threeD: ThreeDAnalysis
 ): string {
-  return `You are an AI transaction security assistant for Coin Fi wallet.
+  return `You are an AI transaction security assistant for Coin OS wallet.
 Your job is to explain Ethereum transactions in simple, clear language and highlight potential risks.
 
 TRANSACTION CONTEXT:

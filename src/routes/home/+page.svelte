@@ -113,7 +113,7 @@
         <img
           src="/logo.png"
           class="w-full h-full object-contain p-1"
-          alt="CoinFi Logo"
+          alt="Coin OS Logo"
         />
       </div>
       <NetworkSelector />

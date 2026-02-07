@@ -93,7 +93,7 @@
           <h2 class="font-black text-white uppercase tracking-tight">
             WalletConnect
           </h2>
-          <p class="text-[10px] text-zinc-500">Connect to DApps</p>
+          <p class="text-[10px] text-zinc-500">Connect DApps to Coin OS</p>
         </div>
       </div>
       <button
@@ -136,7 +136,7 @@
           >
             <ShieldCheck class="w-4 h-4 text-emerald-400" />
             <span class="text-xs text-emerald-400 font-medium">
-              AI Guard will protect all transactions
+              Coin OS AI Guard protects all transactions
             </span>
           </div>
 

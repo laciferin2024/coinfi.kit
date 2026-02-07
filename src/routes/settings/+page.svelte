@@ -95,7 +95,7 @@
         <img
           src="/logo.png"
           class="w-full h-full object-contain p-4"
-          alt="CoinFi Logo"
+          alt="Coin OS Logo"
         />
       </div>
       <div class="text-center space-y-1">
@@ -329,7 +329,7 @@
       <p
         class="text-[8px] text-zinc-600 font-black uppercase tracking-[0.3em] mt-6"
       >
-        Coin Fi Protocol v2.9.0-MVP
+        Coin OS Protocol v2.9.0-MVP
       </p>
     </footer>
   </main>

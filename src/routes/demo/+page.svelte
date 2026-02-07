@@ -145,7 +145,7 @@
 </script>
 
 <svelte:head>
-  <title>AI Guard Demo | Coin Fi</title>
+  <title>AI Guard Demo | Coin OS</title>
 </svelte:head>
 
 <div class="min-h-screen bg-black overflow-hidden relative">

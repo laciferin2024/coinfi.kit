@@ -1,4 +1,4 @@
-// Blockchain utility functions for CoinFi Wallet
+// Blockchain utility functions for Coin OS Wallet
 import type { TokenAsset, Activity } from '$lib/types';
 
 // Fetch token balances for an address

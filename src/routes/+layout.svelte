@@ -46,10 +46,10 @@
 </script>
 
 <svelte:head>
-  <title>CoinFi</title>
+  <title>Coin OS</title>
   <meta
     name="description"
-    content="∞ self-custodial wallet secured by passkeys"
+    content="Coin OS — AI powered OS for Ethereum wallet"
   />
 </svelte:head>
 

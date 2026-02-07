@@ -1,4 +1,4 @@
-// Shared TypeScript types for CoinFi Wallet
+// Shared TypeScript types for Coin OS Wallet
 
 export interface Network {
   id: string;

@@ -133,7 +133,7 @@
 </script>
 
 <svelte:head>
-  <title>CoinFi Swap | AI-Guarded DEX</title>
+  <title>Coin OS Swap | AI-Guarded DEX</title>
 </svelte:head>
 
 <div
@@ -151,7 +151,7 @@
     <h1
       class="text-2xl font-black italic uppercase tracking-tighter text-white"
     >
-      CoinFi Swap
+      Coin OS Swap
     </h1>
     <p class="text-xs text-zinc-500 flex items-center justify-center gap-1">
       <Shield class="w-3 h-3" /> AI-Guarded Exchange

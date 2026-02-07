@@ -101,7 +101,7 @@ export async function decryptScoped(encryptedB64: string): Promise<string> {
     return new TextDecoder().decode(decryptedBuffer);
   } catch (e) {
     console.error('[Crypto] Decryption integrity failure:', e);
-    throw new Error("Coin Fi Cloud Vault Decryption Failed");
+    throw new Error("Coin OS Cloud Vault Decryption Failed");
   }
 }
 
@@ -172,11 +172,11 @@ export async function registerPasskey(keyB64: string, privHex: string, walletAdd
 
   const publicKey: PublicKeyCredentialCreationOptions = {
     challenge,
-    rp: { name: 'Coin Fi', id: rpId },
+    rp: { name: 'Coin OS', id: rpId },
     user: {
       id: payloadBuffer,
       name: walletAddress,
-      displayName: `Coin Fi: ${walletAddress.slice(0, 8)}`
+      displayName: `Coin OS: ${walletAddress.slice(0, 8)}`
     },
     pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
     authenticatorSelection: {

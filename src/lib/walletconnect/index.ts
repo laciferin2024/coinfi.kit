@@ -1,4 +1,4 @@
-// WalletConnect Web3Wallet integration for CoinFi
+// WalletConnect Web3Wallet integration for Coin OS
 // Handles DApp connections and routes transactions through AI Guard
 
 import { Core } from '@walletconnect/core';
@@ -77,8 +77,8 @@ export async function initWalletConnect(address: string): Promise<boolean> {
     web3wallet = await Web3Wallet.init({
       core: core as any, // Type assertion for SDK compatibility
       metadata: {
-        name: 'CoinFi Wallet',
-        description: 'AI-Guarded Self-Custody Wallet',
+        name: 'Coin OS',
+        description: 'AI-Powered OS for Ethereum Wallet',
         url: 'https://coinfi.ideomind.org',
         icons: ['https://coinfi.ideomind.org/logo.png'],
       },
