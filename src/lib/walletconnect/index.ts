@@ -8,10 +8,8 @@ import { writable, get } from 'svelte/store';
 import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
 import { CHAINS } from '../../config/viem';
 
-// WalletConnect Project ID - Get from https://cloud.walletconnect.com
 const PROJECT_ID = PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id';
 
-// Supported chains (Sepolia testnets)
 const SUPPORTED_CHAINS = CHAINS.map(chain => `eip155:${chain.id}`);
 
 const SUPPORTED_METHODS = [
@@ -81,8 +79,8 @@ export async function initWalletConnect(address: string): Promise<boolean> {
       metadata: {
         name: 'CoinFi Wallet',
         description: 'AI-Guarded Self-Custody Wallet',
-        url: 'https://coinfi.app',
-        icons: ['https://coinfi.app/icon.png'],
+        url: 'https://coinfi.ideomind.org',
+        icons: ['https://coinfi.ideomind.org/logo.png'],
       },
     });
 
