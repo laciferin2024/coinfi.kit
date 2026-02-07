@@ -2,101 +2,134 @@
   import { onMount } from "svelte"
   import { goto } from "$app/navigation"
   import { browser } from "$app/environment"
+  import { fly, fade, scale } from "svelte/transition"
   import {
     Shield,
     Zap,
     AlertTriangle,
-    ArrowUpRight,
-    Coins,
-    Lock,
     CheckCircle,
     XCircle,
+    Brain,
+    Eye,
+    Lock,
+    Cpu,
+    Fingerprint,
+    ArrowRight,
   } from "lucide-svelte"
 
   import { walletStore, activeNetwork } from "$lib/stores/wallet"
   import type { AIGuardResponse, RiskLevel } from "$lib/ai-guard/types"
   import GuardConsole from "$lib/components/ui/GuardConsole.svelte"
-  import Button from "$lib/components/ui/Button.svelte"
 
-  // Demo transaction scenarios
-  const DEMO_SCENARIOS = [
+  // Demo scenarios with realistic data
+  const SCENARIOS = [
     {
-      id: "safe-transfer",
-      name: "Safe ETH Transfer",
-      description: "Send 0.001 ETH to Vitalik.eth - Low risk",
-      icon: "✅",
-      risk: "low" as RiskLevel,
+      id: "safe",
+      title: "Safe Transfer",
+      subtitle: "Send ETH to known address",
+      emoji: "✅",
+      gradient: "from-emerald-600 to-cyan-500",
+      description: "0.001 ETH to vitalik.eth",
+      expectedRisk: "LOW" as const,
       transaction: {
-        chainId: 84532, // Base Sepolia
-        from: "0x0000000000000000000000000000000000000000",
-        to: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", // Vitalik
-        value: "1000000000000000", // 0.001 ETH
+        chainId: 84532,
+        from: "",
+        to: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+        value: "1000000000000000",
         data: "0x",
       },
     },
     {
-      id: "risky-approval",
-      name: "Risky Unlimited Approval",
-      description: "Approve unlimited USDC to unknown contract - HIGH RISK",
-      icon: "🚨",
-      risk: "high" as RiskLevel,
+      id: "risky",
+      title: "Dangerous Approval",
+      subtitle: "Unlimited token access",
+      emoji: "🚨",
+      gradient: "from-rose-600 to-orange-500",
+      description: "Approve ∞ USDC to unverified contract",
+      expectedRisk: "HIGH" as const,
       transaction: {
         chainId: 84532,
-        from: "0x0000000000000000000000000000000000000000",
-        to: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
+        from: "",
+        to: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         value: "0",
-        // approve(0xABCDEF..., unlimited)
         data: "0x095ea7b3000000000000000000000000abcdef1234567890abcdef1234567890abcdef12ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       },
     },
     {
-      id: "uniswap-swap",
-      name: "Uniswap Swap",
-      description: "Swap on verified Uniswap - Medium risk",
-      icon: "🦄",
-      risk: "medium" as RiskLevel,
+      id: "defi",
+      title: "DeFi Swap",
+      subtitle: "Uniswap interaction",
+      emoji: "🦄",
+      gradient: "from-purple-600 to-pink-500",
+      description: "Swap 0.1 ETH on verified DEX",
+      expectedRisk: "MEDIUM" as const,
       transaction: {
         chainId: 84532,
-        from: "0x0000000000000000000000000000000000000000",
-        to: "0x2626664c2603336E57B271c5C0b26F421741e481", // Uniswap Router
-        value: "100000000000000000", // 0.1 ETH
-        data: "0x5ae401dc", // multicall signature
+        from: "",
+        to: "0x2626664c2603336E57B271c5C0b26F421741e481",
+        value: "100000000000000000",
+        data: "0x5ae401dc",
       },
     },
   ]
 
-  let selectedScenario = $state<(typeof DEMO_SCENARIOS)[number] | null>(null)
-  let isAnalyzing = $state(false)
-  let analysisResult = $state<AIGuardResponse | null>(null)
+  let phase = $state<"intro" | "select" | "scanning" | "result">("intro")
+  let selectedScenario = $state<(typeof SCENARIOS)[number] | null>(null)
+  let guardResponse = $state<AIGuardResponse | null>(null)
+  let introStep = $state(0)
+
+  const introSteps = [
+    { icon: Eye, text: "1D: Identity Verification", color: "text-cyan-400" },
+    { icon: Cpu, text: "2D: Transaction Simulation", color: "text-purple-400" },
+    { icon: Brain, text: "3D: AI Threat Analysis", color: "text-rose-400" },
+  ]
 
   onMount(() => {
     if (browser && !$walletStore.address) {
       goto("/")
+      return
     }
+
+    // Animate intro steps
+    const timer = setInterval(() => {
+      introStep++
+      if (introStep >= introSteps.length) {
+        clearInterval(timer)
+        setTimeout(() => (phase = "select"), 800)
+      }
+    }, 600)
+
+    return () => clearInterval(timer)
   })
 
-  function selectScenario(scenario: (typeof DEMO_SCENARIOS)[number]) {
-    selectedScenario = scenario
-    isAnalyzing = true
-    analysisResult = null
+  function selectScenario(scenario: (typeof SCENARIOS)[number]) {
+    selectedScenario = {
+      ...scenario,
+      transaction: {
+        ...scenario.transaction,
+        from: $walletStore.address || "",
+      },
+    }
+    phase = "scanning"
+    guardResponse = null
   }
 
-  function handleAnalysisComplete(
+  function handleGuardComplete(
     verdict: RiskLevel,
     response: AIGuardResponse | null,
   ) {
-    analysisResult = response
-    isAnalyzing = false
+    guardResponse = response
+    setTimeout(() => (phase = "result"), 300)
   }
 
-  function resetDemo() {
+  function reset() {
+    phase = "select"
     selectedScenario = null
-    isAnalyzing = false
-    analysisResult = null
+    guardResponse = null
   }
 
-  function getRiskColor(risk: RiskLevel | null) {
-    switch (risk) {
+  function getRiskColor(risk: string) {
+    switch (risk?.toLowerCase()) {
       case "low":
         return "emerald"
       case "medium":
@@ -115,253 +148,321 @@
   <title>AI Guard Demo | Coin Fi</title>
 </svelte:head>
 
-<div class="min-h-screen bg-black px-6 pt-6 pb-32">
-  <!-- Header -->
-  <div class="space-y-2 mb-8">
-    <div class="flex items-center gap-2">
-      <Shield class="w-6 h-6 text-orange-500" />
-      <h1
-        class="text-2xl font-black italic uppercase tracking-tighter text-white"
-      >
-        AI Guard Demo
-      </h1>
-    </div>
-    <p class="text-sm text-zinc-500">
-      Test the 3D AI Wallet Guard with example transactions
-    </p>
+<div class="min-h-screen bg-black overflow-hidden relative">
+  <!-- Animated Background -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div
+      class="absolute top-1/4 -left-32 w-96 h-96 bg-orange-500/10 rounded-full blur-[120px] animate-pulse"
+    ></div>
+    <div
+      class="absolute bottom-1/4 -right-32 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] animate-pulse"
+      style="animation-delay: 1s"
+    ></div>
+    <div
+      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-orange-500/5 to-purple-500/5 rounded-full blur-[100px]"
+    ></div>
   </div>
 
-  {#if !selectedScenario}
-    <!-- Scenario Selection -->
-    <div class="space-y-4">
-      <h2
-        class="text-[10px] font-black uppercase text-zinc-500 tracking-widest"
-      >
-        Select a Demo Scenario
-      </h2>
-
-      {#each DEMO_SCENARIOS as scenario}
-        <button
-          onclick={() => selectScenario(scenario)}
-          class="w-full p-4 rounded-2xl bg-zinc-900 border border-white/10 hover:border-orange-500/50 transition-all text-left group"
-        >
-          <div class="flex items-start gap-4">
-            <div class="text-3xl">{scenario.icon}</div>
-            <div class="flex-1 space-y-1">
-              <h3
-                class="font-bold text-white group-hover:text-orange-500 transition-colors"
-              >
-                {scenario.name}
-              </h3>
-              <p class="text-xs text-zinc-500">{scenario.description}</p>
-            </div>
-            <div
-              class="px-2 py-1 rounded bg-{getRiskColor(
-                scenario.risk,
-              )}-500/10 text-{getRiskColor(
-                scenario.risk,
-              )}-400 text-[9px] font-black uppercase"
-            >
-              {scenario.risk}
-            </div>
-          </div>
-        </button>
-      {/each}
-    </div>
-
-    <!-- Info Box -->
-    <div
-      class="mt-8 p-4 rounded-2xl bg-orange-500/5 border border-orange-500/20"
-    >
-      <div class="flex items-start gap-3">
-        <Zap class="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-        <div class="space-y-1">
-          <p class="text-sm font-bold text-white">How it works</p>
-          <p class="text-xs text-zinc-400 leading-relaxed">
-            Each scenario sends a test transaction to the AI Guard API, which
-            performs:
-          </p>
-          <ul class="text-xs text-zinc-500 space-y-1 mt-2">
-            <li>
-              • <strong class="text-cyan-400">1D Analysis:</strong> Contract verification
-              via Etherscan
-            </li>
-            <li>
-              • <strong class="text-purple-400">2D Analysis:</strong> Transaction
-              simulation via Tenderly
-            </li>
-            <li>
-              • <strong class="text-rose-400">3D Analysis:</strong> Threat heuristics
-              & LLM explanation
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  {:else}
-    <!-- Analysis View -->
-    <div class="space-y-6">
-      <!-- Scenario Header -->
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <span class="text-2xl">{selectedScenario.icon}</span>
-          <div>
-            <h2 class="font-bold text-white">{selectedScenario.name}</h2>
-            <p class="text-xs text-zinc-500">{selectedScenario.description}</p>
-          </div>
-        </div>
-        <button
-          onclick={resetDemo}
-          class="text-xs text-zinc-500 hover:text-white transition-colors"
-        >
-          ← Back
-        </button>
-      </div>
-
-      <!-- Transaction Details -->
-      <div class="p-4 rounded-2xl bg-zinc-900 border border-white/10 space-y-3">
-        <h3
-          class="text-[10px] font-black uppercase text-zinc-500 tracking-widest"
-        >
-          Transaction Details
-        </h3>
-        <div class="font-mono text-xs space-y-2">
-          <div class="flex justify-between">
-            <span class="text-zinc-500">To:</span>
-            <span class="text-zinc-300"
-              >{selectedScenario.transaction.to.slice(
-                0,
-                10,
-              )}...{selectedScenario.transaction.to.slice(-8)}</span
-            >
-          </div>
-          <div class="flex justify-between">
-            <span class="text-zinc-500">Value:</span>
-            <span class="text-zinc-300">
-              {selectedScenario.transaction.value === "0"
-                ? "0"
-                : (parseInt(selectedScenario.transaction.value) / 1e18).toFixed(
-                    4,
-                  )} ETH
-            </span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-zinc-500">Data:</span>
-            <span class="text-zinc-300">
-              {selectedScenario.transaction.data === "0x"
-                ? "(empty)"
-                : selectedScenario.transaction.data.slice(0, 10) + "..."}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Guard Console -->
-      {#if isAnalyzing}
-        <div class="space-y-3">
-          <h3
-            class="text-[10px] font-black uppercase text-zinc-500 tracking-widest flex items-center gap-2"
-          >
-            <Shield class="w-3.5 h-3.5" /> AI Guard Analysis
-          </h3>
-          <GuardConsole
-            transactionData={{
-              ...selectedScenario.transaction,
-              from:
-                $walletStore.address ||
-                "0x0000000000000000000000000000000000000000",
-            }}
-            onComplete={handleAnalysisComplete}
-          />
-        </div>
-      {/if}
-
-      <!-- Result Summary -->
-      {#if analysisResult}
-        <div class="space-y-4">
-          <!-- Verdict Banner -->
+  <!-- Content -->
+  <div
+    class="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 py-12"
+  >
+    <!-- INTRO PHASE -->
+    {#if phase === "intro"}
+      <div class="text-center space-y-8" in:fade={{ duration: 300 }}>
+        <div class="relative inline-block">
           <div
-            class="p-4 rounded-2xl bg-{getRiskColor(
-              analysisResult.overall.riskLevel,
-            )}-500/10 border border-{getRiskColor(
-              analysisResult.overall.riskLevel,
-            )}-500/30"
+            class="absolute inset-0 bg-gradient-to-r from-orange-500 to-rose-500 rounded-3xl blur-xl opacity-50 animate-pulse"
+          ></div>
+          <div
+            class="relative w-24 h-24 rounded-3xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-2xl"
           >
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                {#if analysisResult.overall.riskLevel === "low"}
-                  <CheckCircle class="w-6 h-6 text-emerald-400" />
-                {:else if analysisResult.overall.riskLevel === "high" || analysisResult.overall.riskLevel === "blocked"}
-                  <XCircle class="w-6 h-6 text-rose-400" />
+            <Shield class="w-12 h-12 text-white" />
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h1
+            class="text-4xl font-black italic uppercase tracking-tighter text-white"
+          >
+            AI Guard
+          </h1>
+          <p class="text-zinc-500 text-sm font-medium">
+            3-Dimensional Transaction Security
+          </p>
+        </div>
+
+        <div class="space-y-3 pt-4">
+          {#each introSteps as step, i}
+            {#if i <= introStep}
+              <div
+                class="flex items-center gap-3 px-6 py-3 rounded-2xl bg-zinc-900/80 border border-white/10 backdrop-blur-sm"
+                in:fly={{ y: 20, duration: 400, delay: i * 100 }}
+              >
+                <div
+                  class="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center"
+                >
+                  <svelte:component
+                    this={step.icon}
+                    class="w-5 h-5 {step.color}"
+                  />
+                </div>
+                <span class="text-sm font-bold text-white">{step.text}</span>
+                {#if i < introStep}
+                  <CheckCircle class="w-4 h-4 text-emerald-400 ml-auto" />
                 {:else}
-                  <AlertTriangle class="w-6 h-6 text-yellow-400" />
+                  <div
+                    class="w-4 h-4 rounded-full border-2 border-orange-500 border-t-transparent animate-spin ml-auto"
+                  ></div>
                 {/if}
-                <div>
-                  <p class="font-bold text-white uppercase">
-                    {analysisResult.overall.riskLevel} Risk
-                  </p>
-                  <p class="text-xs text-zinc-400">
-                    {analysisResult.llmExplanation.short}
+              </div>
+            {/if}
+          {/each}
+        </div>
+      </div>
+    {/if}
+
+    <!-- SELECT PHASE -->
+    {#if phase === "select"}
+      <div class="w-full max-w-md space-y-8" in:fade={{ duration: 300 }}>
+        <div class="text-center space-y-2">
+          <h2
+            class="text-2xl font-black italic uppercase tracking-tighter text-white"
+          >
+            Choose Scenario
+          </h2>
+          <p class="text-xs text-zinc-500">
+            See AI Guard analyze different transaction types
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          {#each SCENARIOS as scenario, i}
+            <button
+              onclick={() => selectScenario(scenario)}
+              class="w-full group relative overflow-hidden"
+              in:fly={{ y: 30, duration: 400, delay: i * 100 }}
+            >
+              <div
+                class="absolute inset-0 bg-gradient-to-r {scenario.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-2xl"
+              ></div>
+              <div
+                class="relative p-5 rounded-2xl bg-zinc-900/80 border border-white/10 hover:border-white/30 transition-all duration-300 flex items-center gap-4"
+              >
+                <div class="text-4xl">{scenario.emoji}</div>
+                <div class="flex-1 text-left">
+                  <h3 class="font-black text-white text-lg">
+                    {scenario.title}
+                  </h3>
+                  <p class="text-xs text-zinc-500">{scenario.subtitle}</p>
+                  <p class="text-[10px] text-zinc-600 mt-1 font-mono">
+                    {scenario.description}
                   </p>
                 </div>
-              </div>
-              <div class="text-right">
-                <p class="text-2xl font-black text-white">
-                  {analysisResult.overall.score}
-                </p>
-                <p class="text-[9px] text-zinc-500 uppercase">/100</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- LLM Explanation -->
-          <div
-            class="p-4 rounded-2xl bg-zinc-900 border border-white/10 space-y-3"
-          >
-            <h3
-              class="text-[10px] font-black uppercase text-zinc-500 tracking-widest"
-            >
-              AI Explanation
-            </h3>
-            <p class="text-sm text-zinc-300 leading-relaxed">
-              {analysisResult.llmExplanation.detailed}
-            </p>
-            <p class="text-xs text-orange-400 font-medium">
-              💡 {analysisResult.llmExplanation.recommendation}
-            </p>
-          </div>
-
-          <!-- Threat Tags -->
-          {#if analysisResult.dimensions.threeD.threatTags.length > 0}
-            <div class="flex flex-wrap gap-2">
-              {#each analysisResult.dimensions.threeD.threatTags as tag}
-                <span
-                  class="px-2 py-1 rounded-lg bg-rose-500/10 text-rose-400 text-[9px] font-bold uppercase"
+                <div
+                  class="px-3 py-1 rounded-lg bg-gradient-to-r {scenario.gradient} text-[10px] font-black text-white uppercase"
                 >
-                  {tag.replace(/_/g, " ")}
-                </span>
-              {/each}
-            </div>
-          {/if}
+                  {scenario.expectedRisk}
+                </div>
+                <ArrowRight
+                  class="w-5 h-5 text-zinc-600 group-hover:text-white group-hover:translate-x-1 transition-all"
+                />
+              </div>
+            </button>
+          {/each}
+        </div>
 
-          <!-- Action Buttons -->
-          <div class="grid grid-cols-2 gap-3 pt-4">
-            <Button
-              onclick={resetDemo}
-              variant="ghost"
-              class="h-12 rounded-xl border border-white/10 text-zinc-400"
-            >
-              Try Another
-            </Button>
-            <Button
-              onclick={resetDemo}
-              class="h-12 rounded-xl bg-orange-600 text-white"
-            >
-              Done
-            </Button>
+        <div class="text-center pt-4">
+          <a
+            href="/wallet"
+            class="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+          >
+            ← Back to Wallet
+          </a>
+        </div>
+      </div>
+    {/if}
+
+    <!-- SCANNING PHASE -->
+    {#if phase === "scanning" && selectedScenario}
+      <div class="w-full max-w-md space-y-6" in:fade={{ duration: 300 }}>
+        <div class="text-center space-y-2">
+          <div class="text-4xl">{selectedScenario.emoji}</div>
+          <h2 class="text-xl font-black uppercase text-white">
+            {selectedScenario.title}
+          </h2>
+          <p class="text-xs text-zinc-500 font-mono">
+            {selectedScenario.description}
+          </p>
+        </div>
+
+        <GuardConsole
+          transactionData={selectedScenario.transaction}
+          onComplete={handleGuardComplete}
+        />
+
+        <button
+          onclick={reset}
+          class="w-full text-xs text-zinc-600 hover:text-white transition-colors py-2"
+        >
+          Cancel
+        </button>
+      </div>
+    {/if}
+
+    <!-- RESULT PHASE -->
+    {#if phase === "result" && guardResponse}
+      <div
+        class="w-full max-w-md space-y-6"
+        in:scale={{ start: 0.95, duration: 400 }}
+      >
+        <!-- Result Header -->
+        <div class="text-center space-y-4">
+          <div class="relative inline-block">
+            {#if guardResponse.overall.riskLevel === "low"}
+              <div
+                class="absolute inset-0 bg-emerald-500 rounded-full blur-xl opacity-50 animate-pulse"
+              ></div>
+              <div
+                class="relative w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center"
+              >
+                <CheckCircle class="w-10 h-10 text-white" />
+              </div>
+            {:else if guardResponse.overall.riskLevel === "high" || guardResponse.overall.riskLevel === "blocked"}
+              <div
+                class="absolute inset-0 bg-rose-500 rounded-full blur-xl opacity-50 animate-pulse"
+              ></div>
+              <div
+                class="relative w-20 h-20 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center"
+              >
+                <XCircle class="w-10 h-10 text-white" />
+              </div>
+            {:else}
+              <div
+                class="absolute inset-0 bg-yellow-500 rounded-full blur-xl opacity-50 animate-pulse"
+              ></div>
+              <div
+                class="relative w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center"
+              >
+                <AlertTriangle class="w-10 h-10 text-white" />
+              </div>
+            {/if}
+          </div>
+
+          <div>
+            <h2 class="text-3xl font-black uppercase text-white tracking-tight">
+              {guardResponse.overall.riskLevel} Risk
+            </h2>
+            <div class="flex items-center justify-center gap-2 mt-2">
+              <span class="text-5xl font-black text-white"
+                >{guardResponse.overall.score}</span
+              >
+              <span class="text-xl text-zinc-600">/100</span>
+            </div>
           </div>
         </div>
-      {/if}
-    </div>
-  {/if}
+
+        <!-- AI Explanation Card -->
+        <div
+          class="p-5 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-4"
+        >
+          <div class="flex items-center gap-2">
+            <Brain class="w-4 h-4 text-purple-400" />
+            <span
+              class="text-[10px] font-black uppercase text-zinc-500 tracking-widest"
+              >AI Analysis</span
+            >
+          </div>
+
+          <p class="text-sm text-zinc-300 leading-relaxed">
+            {guardResponse.llmExplanation.detailed}
+          </p>
+
+          <div
+            class="p-3 rounded-xl bg-{getRiskColor(
+              guardResponse.overall.riskLevel,
+            )}-500/10 border border-{getRiskColor(
+              guardResponse.overall.riskLevel,
+            )}-500/30"
+          >
+            <p
+              class="text-xs text-{getRiskColor(
+                guardResponse.overall.riskLevel,
+              )}-400 font-medium"
+            >
+              💡 {guardResponse.llmExplanation.recommendation}
+            </p>
+          </div>
+        </div>
+
+        <!-- Threat Tags -->
+        {#if guardResponse.dimensions.threeD.threatTags.length > 0}
+          <div class="flex flex-wrap gap-2 justify-center">
+            {#each guardResponse.dimensions.threeD.threatTags as tag}
+              <span
+                class="px-3 py-1.5 rounded-full bg-zinc-800 border border-white/10 text-[10px] font-bold text-zinc-400 uppercase"
+              >
+                {tag.replace(/_/g, " ")}
+              </span>
+            {/each}
+          </div>
+        {/if}
+
+        <!-- Dimension Scores -->
+        <div class="grid grid-cols-3 gap-3">
+          <div
+            class="p-3 rounded-xl bg-zinc-900 border border-white/5 text-center"
+          >
+            <Eye class="w-4 h-4 text-cyan-400 mx-auto" />
+            <p class="text-lg font-black text-white mt-1">
+              {guardResponse.dimensions.oneD.score}
+            </p>
+            <p class="text-[9px] text-zinc-600 uppercase">Identity</p>
+          </div>
+          <div
+            class="p-3 rounded-xl bg-zinc-900 border border-white/5 text-center"
+          >
+            <Cpu class="w-4 h-4 text-purple-400 mx-auto" />
+            <p class="text-lg font-black text-white mt-1">
+              {guardResponse.dimensions.twoD.score}
+            </p>
+            <p class="text-[9px] text-zinc-600 uppercase">Simulation</p>
+          </div>
+          <div
+            class="p-3 rounded-xl bg-zinc-900 border border-white/5 text-center"
+          >
+            <Brain class="w-4 h-4 text-rose-400 mx-auto" />
+            <p class="text-lg font-black text-white mt-1">
+              {guardResponse.dimensions.threeD.score}
+            </p>
+            <p class="text-[9px] text-zinc-600 uppercase">Threats</p>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button
+          onclick={reset}
+          class="w-full h-14 rounded-2xl bg-gradient-to-r from-orange-600 to-rose-600 text-white font-black uppercase tracking-widest text-sm hover:from-orange-500 hover:to-rose-500 transition-all"
+        >
+          Try Another Scenario
+        </button>
+
+        <p class="text-center text-[10px] text-zinc-600">
+          Processed in {guardResponse.processingTimeMs}ms
+        </p>
+      </div>
+    {/if}
+  </div>
 </div>
+
+<style>
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+</style>

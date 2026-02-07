@@ -73,7 +73,7 @@ export type TransactionStatus = 'idle' | 'input' | 'simulating' | 'ready' | 'sig
 
 export interface ExternalRequest {
   id: string;
-  type: 'eth_sendTransaction' | 'eth_sign' | 'personal_sign';
+  type: 'eth_sendTransaction' | 'eth_sign' | 'personal_sign' | 'eth_signTypedData' | 'eth_signTypedData_v4';
   payload: unknown;
   origin: string;
 }

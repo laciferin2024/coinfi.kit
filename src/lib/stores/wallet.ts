@@ -22,18 +22,19 @@ export const GLOBAL_NETWORK: Network = {
   chainId: 0
 };
 
-export const ACTIVE_NETWORK: Network = {
+export const ACTIVE_NETWORK: Network & { rpcUrl: string } = {
   id: 'optimism-sepolia',
   name: 'Optimism Sepolia',
   icon: '🛡️',
   color: '#FF0420',
-  chainId: 11155420
+  chainId: 11155420,
+  rpcUrl: 'https://sepolia.optimism.io'
 };
 
-export const NETWORKS: Network[] = [
+export const NETWORKS: (Network & { rpcUrl?: string })[] = [
   ACTIVE_NETWORK,
-  { id: 'ethereum-sepolia', name: 'Ethereum Sepolia', icon: '⟠', color: '#627EEA', chainId: 11155111 },
-  { id: 'base-sepolia', name: 'Base Sepolia', icon: '🔵', color: '#0052FF', chainId: 84532 },
+  { id: 'ethereum-sepolia', name: 'Ethereum Sepolia', icon: '⟠', color: '#627EEA', chainId: 11155111, rpcUrl: 'https://rpc.sepolia.org' },
+  { id: 'base-sepolia', name: 'Base Sepolia', icon: '🔵', color: '#0052FF', chainId: 84532, rpcUrl: 'https://sepolia.base.org' },
 ];
 
 const DEFAULT_CONTACTS: Contact[] = [

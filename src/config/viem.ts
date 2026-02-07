@@ -13,6 +13,43 @@ import type { Chain, PublicClient } from "viem"
  * - Legacy export `publicClient` is deprecated; migrate to the functions above.
  */
 
+export const sepolia = defineChain({
+  id: 11155111,
+  name: "Sepolia",
+  nativeCurrency: {
+    decimals: 18,
+    name: "Ether",
+    symbol: "ETH",
+    faucet: [
+      "https://cloud.google.com/application/web3/faucet/ethereum/sepolia",
+    ],
+  },
+  rpcUrls: {
+    default: {
+      http: [
+        "https://eth-sepolia.g.alchemy.com/v2/F0r3Q4iUYPUqluEG4clZu"
+      ],
+    },
+    public: {
+      http: [
+        "https://ethereum-sepolia-rpc.publicnode.com",
+        "https://eth-sepolia.public.blastapi.io",
+        "https://0xrpc.io/sep",
+
+        // "https://eth-sepolia-testnet.rpc.grove.city/v1/01fdb492",
+        // "https://rpc.sepolia.org",
+        // "https://sepolia.gateway.tenderly.co",
+      ],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Sepolia Explorer",
+      url: "https://eth-sepolia.blockscout.com",
+    },
+  },
+  testnet: true,
+});
 
 export const titanAITestnet = defineChain({
   id: 1020352220,
@@ -116,6 +153,7 @@ export const amoyTestnet = defineChain({
 const CHAIN_MAP = new Map<number, Chain>([
   [titanAITestnet.id, titanAITestnet],
   [amoyTestnet.id, amoyTestnet],
+  [sepolia.id, sepolia]
 ])
 
 /**
