@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/stores"
-  import { Home, Activity, Compass, Settings } from "lucide-svelte"
+  import { Home, Activity, Compass, Settings, Wallet } from "lucide-svelte"
 
   interface NavItem {
     href: string
@@ -9,7 +9,8 @@
   }
 
   const navItems: NavItem[] = [
-    { href: "/home", label: "Wallet", icon: Home },
+    { href: "/home", label: "Connect", icon: Home },
+    { href: "/assets", label: "Assets", icon: Wallet },
     { href: "/activity", label: "Activity", icon: Activity },
     { href: "/explore", label: "Explore", icon: Compass },
     { href: "/settings", label: "Settings", icon: Settings },

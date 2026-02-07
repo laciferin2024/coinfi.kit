@@ -2,72 +2,35 @@
   import { onMount } from "svelte"
   import { goto } from "$app/navigation"
   import { browser } from "$app/environment"
-  import {
-    Copy,
-    Check,
-    RefreshCw,
-    Zap,
-    Coins,
-    LayoutGrid,
-    Plus,
-  } from "lucide-svelte"
+  import { Copy, Check, RefreshCw, Zap } from "lucide-svelte"
   import NetworkSelector from "$lib/components/ui/NetworkSelector.svelte"
   import HyperToggle from "$lib/components/ui/HyperToggle.svelte"
-  import ImportAssetModal from "$lib/components/ui/ImportAssetModal.svelte"
-  import TokenDetailModal from "$lib/components/ui/TokenDetailModal.svelte"
-  import SendModal from "$lib/components/ui/SendModal.svelte"
-  import ReceiveModal from "$lib/components/ui/ReceiveModal.svelte"
-  import type { TokenAsset } from "$lib/types"
   import {
     walletStore,
     activeNetwork,
-    filteredTokens,
-    filteredNfts,
     displayedTotalUsd,
   } from "$lib/stores/wallet"
   import { fetchBalances, lookupAddressEns } from "$lib/utils/blockchain-utils"
+  import { pairWithUri, wcStore, disconnectSession } from "$lib/walletconnect"
 
   let isFetching = $state(false)
   let copied = $state(false)
-  let activeTab = $state<"tokens" | "nfts">("tokens")
-  let isImportModalOpen = $state(false)
-  let selectedToken = $state<TokenAsset | null>(null)
-  let isTokenDetailOpen = $state(false)
-  let isSendModalOpen = $state(false)
-  let isReceiveModalOpen = $state(false)
+  let wcUri = $state("")
+  let isConnecting = $state(false)
+  let connectionError = $state("")
 
-  function openTokenDetail(token: TokenAsset) {
-    selectedToken = token
-    isTokenDetailOpen = true
-  }
-
-  function openSendModal() {
-    isSendModalOpen = true
-  }
-
-  function openReceiveModal() {
-    isReceiveModalOpen = true
-  }
-
-  onMount(() => {
-    if (browser) {
-      const address = localStorage.getItem("wallet_address")
-      const onboarded = localStorage.getItem("wallet_onboarded_status")
-
-      if (!address || onboarded !== "true") {
-        goto("/")
-        return
-      }
-
-      // Unlock wallet if needed
-      if ($walletStore.isLocked) {
-        walletStore.unlockWallet()
-      }
-
-      // Fetch initial balances
-      update()
+  function handleCopy() {
+    if ($walletStore.address && browser) {
+      navigator.clipboard.writeText($walletStore.address)
+      copied = true
+      setTimeout(() => (copied = false), 1500)
     }
-  })
+  }
+
+  function truncateAddress(addr: string): string {
+    if (!addr) return ""
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+  }
 
   async function update() {
     if (!$walletStore.address) return
@@ -87,17 +50,35 @@
     }
   }
 
-  function handleCopy() {
-    if ($walletStore.address && browser) {
-      navigator.clipboard.writeText($walletStore.address)
-      copied = true
-      setTimeout(() => (copied = false), 1500)
+  async function handleConnect() {
+    if (!wcUri) return
+    isConnecting = true
+    connectionError = ""
+    try {
+      if (!wcUri.startsWith("wc:")) {
+        throw new Error("Invalid WalletConnect URI")
+      }
+      const success = await pairWithUri(wcUri)
+      if (success) {
+        wcUri = ""
+      } else {
+        throw new Error("Failed to pair")
+      }
+    } catch (e: any) {
+      console.error(e)
+      connectionError = e.message || "Connection failed"
+    } finally {
+      isConnecting = false
     }
   }
 
-  function truncateAddress(addr: string): string {
-    if (!addr) return ""
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+  async function handlePaste() {
+    try {
+      const text = await navigator.clipboard.readText()
+      if (text) wcUri = text
+    } catch (e) {
+      console.error("Failed to paste:", e)
+    }
   }
 </script>
 
@@ -125,164 +106,135 @@
 
   <!-- Main Content -->
   <main class="flex-1 py-8 space-y-8 pb-24 px-4 overflow-auto">
-    <!-- Balance Section -->
-    <div class="text-center space-y-2 relative">
-      <p
-        class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500"
-      >
-        {$walletStore.activeNetworkId === "all"
-          ? "Unified Portfolio Balance"
-          : `${$activeNetwork.name} Assets`}
-      </p>
-      <h2 class="text-5xl font-black italic tracking-tighter text-white">
-        ${$displayedTotalUsd.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}
-      </h2>
-      <div class="flex justify-center items-center gap-2">
-        <button
-          onclick={handleCopy}
-          class="flex items-center gap-2 text-[10px] font-mono bg-zinc-900 hover:bg-zinc-800 px-3 py-1 rounded-full border border-white/5 transition-all {copied
-            ? 'text-emerald-400'
-            : 'text-zinc-400'}"
-        >
-          {$walletStore.ensName || truncateAddress($walletStore.address || "")}
-          {#if copied}
-            <Check class="w-3 h-3" />
-          {:else}
-            <Copy class="w-3 h-3" />
-          {/if}
-        </button>
-        <button
-          onclick={update}
-          disabled={isFetching}
-          class="p-1.5 rounded-full bg-zinc-900 border border-white/5 hover:border-orange-500/30 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw
-            class="w-3 h-3 text-orange-500 {isFetching ? 'animate-spin' : ''}"
+    <!-- WalletConnect Section -->
+    <div class="space-y-4">
+      <div class="text-center space-y-2">
+        <h2 class="text-3xl font-black italic tracking-tighter text-white">
+          Connect DApp
+        </h2>
+        <p class="text-xs text-zinc-500 font-bold uppercase tracking-widest">
+          Paste WalletConnect URI below
+        </p>
+      </div>
+
+      <div class="bg-zinc-900 border border-white/5 rounded-3xl p-6 space-y-4">
+        <div class="relative">
+          <input
+            type="text"
+            bind:value={wcUri}
+            placeholder="wc:..."
+            class="w-full bg-black border border-white/10 rounded-xl px-4 py-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 transition-colors font-mono"
+            onkeydown={(e) => {
+              if (e.key === "Enter") {
+                handleConnect()
+              }
+            }}
           />
-        </button>
+          {#if isConnecting}
+            <div class="absolute right-3 top-3">
+              <RefreshCw class="w-5 h-5 text-orange-500 animate-spin" />
+            </div>
+          {:else}
+            <button
+              onclick={handleConnect}
+              class="absolute right-2 top-2 p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+            >
+              <Zap class="w-4 h-4" />
+            </button>
+          {/if}
+        </div>
+
+        {#if connectionError}
+          <p
+            class="text-xs text-rose-500 font-bold text-center bg-rose-500/10 py-1 rounded"
+          >
+            {connectionError}
+          </p>
+        {/if}
+
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            onclick={handlePaste}
+            class="p-4 rounded-xl bg-zinc-950 border border-white/5 hover:border-orange-500/30 transition-colors flex flex-col items-center gap-2 group"
+          >
+            <div
+              class="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center group-hover:bg-orange-600 transition-colors"
+            >
+              <RefreshCw class="w-5 h-5 text-white" />
+            </div>
+            <span class="text-[10px] font-bold uppercase text-zinc-500"
+              >Paste</span
+            >
+          </button>
+          <button
+            onclick={handleConnect}
+            disabled={!wcUri || isConnecting}
+            class="p-4 rounded-xl bg-orange-600 hover:bg-orange-700 transition-colors flex flex-col items-center gap-2 text-white shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:grayscale"
+          >
+            <div
+              class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
+            >
+              <Zap class="w-5 h-5 text-white" />
+            </div>
+            <span class="text-[10px] font-bold uppercase">Connect</span>
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="w-full relative">
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex bg-zinc-900/50 border border-white/5 p-1 rounded-xl">
-          <button
-            onclick={() => (activeTab = "tokens")}
-            class="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase transition-colors {activeTab ===
-            'tokens'
-              ? 'bg-orange-600 text-white'
-              : 'text-zinc-500'}"
-          >
-            <Coins class="w-3.5 h-3.5" /> Tokens
-          </button>
-          <button
-            onclick={() => (activeTab = "nfts")}
-            class="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase transition-colors {activeTab ===
-            'nfts'
-              ? 'bg-orange-600 text-white'
-              : 'text-zinc-500'}"
-          >
-            <LayoutGrid class="w-3.5 h-3.5" /> NFTs
-          </button>
-        </div>
-        <button
-          type="button"
-          aria-label="Import asset"
-          onclick={() => (isImportModalOpen = true)}
-          class="p-2.5 rounded-xl bg-zinc-900 border border-white/5 hover:bg-zinc-800 transition-colors"
+    <!-- Active Connections -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between px-2">
+        <h3 class="text-xs font-black uppercase text-zinc-500 tracking-widest">
+          Active Connections
+        </h3>
+        <span class="text-[10px] font-bold text-zinc-600"
+          >{$wcStore.sessions.length} Active</span
         >
-          <Plus class="w-4 h-4 text-zinc-400" />
-        </button>
       </div>
 
-      <!-- Token List -->
-      {#if activeTab === "tokens"}
-        <div class="space-y-3">
-          {#if !$filteredTokens || $filteredTokens.length === 0}
-            <div class="py-20 text-center space-y-4 opacity-30">
-              <Coins class="w-12 h-12 mx-auto" />
-              <p class="text-xs font-black uppercase tracking-widest">
-                No assets discovered
-              </p>
-            </div>
-          {:else}
-            {#each $filteredTokens as token}
-              <button
-                type="button"
-                onclick={() => openTokenDetail(token)}
-                class="w-full text-left p-4 rounded-[2rem] bg-zinc-900/50 border border-white/5 flex items-center justify-between hover:bg-zinc-900 transition-colors cursor-pointer"
-              >
-                <div class="flex items-center gap-4">
-                  <div
-                    class="w-12 h-12 rounded-2xl bg-zinc-950 flex items-center justify-center text-2xl shadow-inner border border-white/5"
-                  >
-                    {token.icon}
-                  </div>
-                  <div>
-                    <h4 class="font-bold text-sm text-white">
-                      {token.symbol}
-                    </h4>
-                    <p class="text-[10px] text-zinc-500 font-mono italic">
-                      {token.network}
-                    </p>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <p class="font-bold text-sm text-zinc-100">
-                    {Number(token.balance).toFixed(2)}
-                  </p>
-                  <p class="text-[10px] text-orange-500 font-black uppercase">
-                    ${(token.totalValueUsd || 0).toLocaleString()}
-                  </p>
-                </div>
-              </button>
-            {/each}
-          {/if}
+      {#if $wcStore.sessions.length === 0}
+        <div
+          class="py-12 text-center space-y-4 border border-white/5 rounded-3xl bg-zinc-900/30"
+        >
+          <div
+            class="w-12 h-12 rounded-full bg-zinc-900 mx-auto flex items-center justify-center"
+          >
+            <Zap class="w-5 h-5 text-zinc-600" />
+          </div>
+          <p class="text-[10px] font-bold uppercase text-zinc-600">
+            No active sessions
+          </p>
         </div>
       {:else}
-        <!-- NFT Grid -->
-        <div class="grid grid-cols-2 gap-4">
-          {#if !$filteredNfts || $filteredNfts.length === 0}
-            <div class="col-span-2 py-20 text-center space-y-4 opacity-30">
-              <LayoutGrid class="w-12 h-12 mx-auto" />
-              <p class="text-xs font-black uppercase tracking-widest">
-                No collectibles found
-              </p>
-            </div>
-          {:else}
-            {#each $filteredNfts as nft}
-              <div
-                class="group relative rounded-[2rem] overflow-hidden bg-zinc-900 border border-white/5 shadow-lg"
-              >
+        <div class="space-y-3">
+          {#each $wcStore.sessions as session}
+            <div
+              class="p-4 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-between"
+            >
+              <div class="flex items-center gap-3">
                 <img
-                  src={nft.image}
-                  alt={nft.name}
-                  class="w-full aspect-square object-cover transition-transform group-hover:scale-110"
+                  src={session.peer.icons[0] || "/logo.png"}
+                  alt={session.peer.name}
+                  class="w-10 h-10 rounded-xl bg-black"
                 />
-                <div
-                  class="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 to-transparent"
-                >
-                  <p
-                    class="text-[10px] font-black uppercase text-white truncate"
-                  >
-                    {nft.name}
+                <div>
+                  <h4 class="font-bold text-sm text-white">
+                    {session.peer.name}
+                  </h4>
+                  <p class="text-[10px] text-zinc-500 font-mono">
+                    {session.peer.url}
                   </p>
-                  <p class="text-[8px] text-zinc-400 truncate">
-                    {nft.collection}
-                  </p>
-                </div>
-                <div
-                  class="absolute top-2 right-2 px-2 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[8px] font-black uppercase text-orange-500"
-                >
-                  {nft.network.split(" ")[0]}
                 </div>
               </div>
-            {/each}
-          {/if}
+              <button
+                onclick={() => disconnectSession(session.topic)}
+                class="px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 text-[10px] font-black uppercase hover:bg-rose-500 hover:text-white transition-colors"
+              >
+                Disconnect
+              </button>
+            </div>
+          {/each}
         </div>
       {/if}
     </div>

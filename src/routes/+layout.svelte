@@ -24,7 +24,7 @@
   )
 
   // Initialize WalletConnect when wallet is ready
-  onMount(() => {
+  $effect(() => {
     if ($walletStore.address && !$wcStore.initialized) {
       initWalletConnect($walletStore.address)
     }

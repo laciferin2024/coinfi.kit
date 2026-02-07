@@ -19,6 +19,7 @@
   import { fly } from "svelte/transition"
   import { DAPPS } from "$lib/data/dapps"
   import type { AIGuardResponse, RiskLevel } from "$lib/ai-guard/types"
+  import { Porto } from "porto"
 
   interface Props {
     onClose: () => void
@@ -67,26 +68,81 @@
   async function handleApprove() {
     status = "approving"
 
-    // TODO: Actually sign the transaction with Porto
-    // For now, simulate signing
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      // Initialize Porto
+      const porto = Porto.create()
 
-    // Mock transaction hash for demo
-    const mockTxHash = `0x${Date.now().toString(16)}${"0".repeat(48)}`
+      // Re-connect to ensure we have the session (usually instant if already allowed)
+      // We use the store address to hint which account we expect, but Porto handles the auth flow.
+      const accounts = await porto.provider.request({
+        method: "eth_requestAccounts",
+      })
+      const address = accounts[0]
 
-    status = "success"
+      if (
+        !address ||
+        address.toLowerCase() !== $walletStore.address?.toLowerCase()
+      ) {
+        throw new Error("Porto session mismatch. Please reconnect wallet.")
+      }
 
-    // Respond to WalletConnect if this was a WC request
-    if ($wcStore.pendingRequest) {
-      await respondToRequest(true, mockTxHash)
+      let result: any
+
+      if (request?.type === "personal_sign" || request?.type === "eth_sign") {
+        const payload = request.payload as string[]
+        const message = payload[0]
+        result = await porto.provider.request({
+          method: "personal_sign",
+          params: [message, address],
+        })
+      } else if (request?.type === "eth_sendTransaction") {
+        const payload = request.payload as any // Type assertion for transaction object
+        result = await porto.provider.request({
+          method: "eth_sendTransaction",
+          params: [payload],
+        })
+      } else if (
+        request?.type === "eth_signTypedData" ||
+        request?.type === "eth_signTypedData_v4"
+      ) {
+        const params = request.payload as any // Type assertion for typed data
+        // Typed data signing might need specific handling depending on Porto's support
+        // For now, we pass it through.
+        result = await porto.provider.request({
+          method: "eth_signTypedData_v4", // Defaulting to v4 for safety
+          params: params,
+        })
+      } else {
+        // Fallback or unknown method
+        throw new Error(`Unsupported method: ${request?.type}`)
+      }
+
+      status = "success"
+
+      // Respond to WalletConnect if this was a WC request
+      if ($wcStore.pendingRequest) {
+        await respondToRequest(true, result)
+      }
+
+      console.log("[AI Guard] Transaction/Action Approved > Result:", result)
+
+      setTimeout(() => {
+        walletStore.setExternalRequest(null)
+        onClose()
+      }, 1500)
+    } catch (error: any) {
+      console.error("[AI Guard] Approval Failed:", error)
+      // Determine if we should show error state or just close
+      // For now, let's reset to ready but maybe show an alert (future improvement)
+      // or just close if it's a user rejection.
+      if (error.message.includes("User rejected")) {
+        await handleReject()
+      } else {
+        // Show error momentarily?
+        status = "ready" // Go back to ready state so they can try again
+        // In a real app we'd show an error message toast here.
+      }
     }
-
-    console.log("[AI Guard] Transaction Approved:", mockTxHash)
-
-    setTimeout(() => {
-      walletStore.setExternalRequest(null)
-      onClose()
-    }, 1500)
   }
 
   async function handleReject() {
