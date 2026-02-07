@@ -163,18 +163,24 @@
               <p
                 class="text-[10px] font-black uppercase text-zinc-500 tracking-widest"
               >
-                Action Requested
+                {guardResponse?.overall.summary || "Transaction Request"}
               </p>
               <p class="text-sm font-bold text-white italic">
-                Send Transaction
+                {request.type === "eth_sendTransaction"
+                  ? "Send Transaction"
+                  : request.type}
               </p>
             </div>
           </div>
           <div class="text-right">
-            <p class="text-lg font-black text-white">$42.80</p>
-            <p class="text-[9px] font-mono text-zinc-500 uppercase">
-              Est. Value
-            </p>
+            {#if transactionData()?.value && transactionData()?.value !== "0"}
+              <p class="text-lg font-black text-white">
+                {(parseInt(transactionData()?.value || "0") / 1e18).toFixed(4)} ETH
+              </p>
+              <p class="text-[9px] font-mono text-zinc-500 uppercase">Value</p>
+            {:else}
+              <p class="text-sm font-medium text-zinc-400">Contract Call</p>
+            {/if}
           </div>
         </div>
       </div>

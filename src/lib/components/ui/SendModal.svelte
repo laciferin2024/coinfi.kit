@@ -9,6 +9,7 @@
   } from "lucide-svelte"
   import { walletStore, activeNetwork } from "$lib/stores/wallet"
   import type { TokenAsset } from "$lib/types"
+  import type { AIGuardResponse, RiskLevel } from "$lib/ai-guard/types"
   import GuardConsole from "./GuardConsole.svelte"
 
   interface Props {
@@ -26,6 +27,36 @@
   let error = $state("")
   let success = $state(false)
   let showContacts = $state(false)
+  let guardResponse = $state<AIGuardResponse | null>(null)
+
+  // Build transaction data for AI Guard
+  let transactionData = $derived(() => {
+    if (!token || !recipientAddress || !amount) return null
+
+    const amountWei = BigInt(Math.floor(parseFloat(amount) * 1e18)).toString()
+
+    // For native token (ETH), use value field
+    // For ERC-20, use transfer data
+    if (token.symbol === "ETH") {
+      return {
+        chainId: $activeNetwork.chainId,
+        from: $walletStore.address || "",
+        to: recipientAddress,
+        value: amountWei,
+        data: "0x",
+      }
+    } else {
+      // ERC-20 transfer(address,uint256)
+      const transferData = `0xa9059cbb${recipientAddress.slice(2).padStart(64, "0")}${BigInt(amountWei).toString(16).padStart(64, "0")}`
+      return {
+        chainId: $activeNetwork.chainId,
+        from: $walletStore.address || "",
+        to: token.address || "",
+        value: "0",
+        data: transferData,
+      }
+    }
+  })
 
   async function handleSend() {
     if (!recipientAddress || !amount || !token) {
@@ -52,18 +83,13 @@
     isLoading = true
     error = ""
     isSimulating = true
-
-    try {
-      // Simulation will be handled by GuardConsole
-      // After simulation completes, we'll finalize
-    } catch (e) {
-      error = "Transaction failed. Please try again."
-      isLoading = false
-      isSimulating = false
-    }
   }
 
-  function handleSimulationComplete() {
+  function handleSimulationComplete(
+    verdict: RiskLevel,
+    response: AIGuardResponse | null,
+  ) {
+    guardResponse = response
     isSimulating = false
 
     // Add activity
@@ -98,6 +124,7 @@
     error = ""
     success = false
     showContacts = false
+    guardResponse = null
     onClose()
   }
 
@@ -175,7 +202,10 @@
               Active
             </div>
           </div>
-          <GuardConsole onComplete={handleSimulationComplete} />
+          <GuardConsole
+            transactionData={transactionData()}
+            onComplete={handleSimulationComplete}
+          />
         </div>
       {:else}
         <!-- Balance Display -->

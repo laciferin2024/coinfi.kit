@@ -280,6 +280,38 @@
           </p>
         </div>
       </section>
+
+      <!-- AI Guard Demo -->
+      <section class="space-y-4">
+        <h3
+          class="text-[10px] font-black uppercase tracking-widest text-zinc-500"
+        >
+          Developer Tools
+        </h3>
+        <a
+          href="/demo"
+          class="flex items-center justify-between p-4 rounded-2xl bg-zinc-900 border border-white/10 hover:border-orange-500/50 transition-all group"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center"
+            >
+              <ShieldAlert class="w-5 h-5 text-orange-500" />
+            </div>
+            <div>
+              <p
+                class="font-bold text-white group-hover:text-orange-500 transition-colors"
+              >
+                AI Guard Demo
+              </p>
+              <p class="text-[10px] text-zinc-500">
+                Test transaction security analysis
+              </p>
+            </div>
+          </div>
+          <span class="text-zinc-500 text-xs">→</span>
+        </a>
+      </section>
     </div>
 
     <footer class="pt-8 pb-4 text-center">
