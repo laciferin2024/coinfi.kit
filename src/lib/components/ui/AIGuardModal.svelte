@@ -1,4 +1,3 @@
-<script lang="ts">
   import {
     Shield,
     Lock,
@@ -8,10 +7,12 @@
     Check,
     AlertCircle,
     AlertTriangle,
+    MessageCircle, // New icon
   } from "lucide-svelte"
   import { walletStore } from "$lib/stores/wallet"
   import { wcStore, respondToRequest } from "$lib/walletconnect"
   import GuardConsole from "./GuardConsole.svelte"
+  import ChatOverlay from "./ChatOverlay.svelte" // New import
   import Button from "./Button.svelte"
   import DAppIcon from "./DAppIcon.svelte"
   import { fly } from "svelte/transition"
@@ -34,6 +35,7 @@
   )
   let verdict = $state<RiskLevel | null>(null)
   let guardResponse = $state<AIGuardResponse | null>(null)
+  let showChat = $state(false) // New state
 
   // Extract transaction data from request
   let transactionData = $derived(() => {
@@ -158,6 +160,12 @@
               </p>
             </div>
           </div>
+          <button
+            onclick={() => showChat = !showChat}
+            class="p-2 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-500 hover:text-indigo-400 transition-colors mr-2"
+          >
+            <MessageCircle class="w-5 h-5" />
+          </button>
           <button
             onclick={handleReject}
             class="p-2 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-500 transition-colors"
@@ -304,6 +312,19 @@
         </div>
       {/if}
     </div>
+
+    <!-- Chat Overlay -->
+    <ChatOverlay
+      visible={showChat}
+      onClose={() => (showChat = false)}
+      context={{
+        chainId: transactionData()?.chainId || 0,
+        from: transactionData()?.from || "",
+        to: transactionData()?.to || "",
+        value: transactionData()?.value || "0",
+        data: transactionData()?.data || "0x",
+      }}
+    />
   </div>
 {/if}
 

@@ -10,6 +10,7 @@
   } from "lucide-svelte"
   import { onMount } from "svelte"
   import type { AIGuardResponse, RiskLevel } from "$lib/ai-guard/types"
+  import SecurityGauge from "./SecurityGauge.svelte" // New import
 
   interface TransactionData {
     chainId: number
@@ -74,7 +75,10 @@
       guardResponse = result
 
       // Complete 1D
-      updateLastLog("done", `1D: ${result.dimensions.oneD.reasons[0] || "Identity checked"}`)
+      updateLastLog(
+        "done",
+        `1D: ${result.dimensions.oneD.reasons[0] || "Identity checked"}`,
+      )
 
       // Add 2D
       addLog("2d", "pending", "Running transaction simulation...")
@@ -85,15 +89,19 @@
       addLog("3d", "pending", "Analyzing potential threats...")
       await delay(300)
       const threatCount = result.dimensions.threeD.threatTags.length
-      const threatMsg = threatCount > 0 
-        ? `3D: Found ${threatCount} risk factor(s): ${result.dimensions.threeD.threatTags.join(", ")}`
-        : "3D: No significant threats detected"
+      const threatMsg =
+        threatCount > 0
+          ? `3D: Found ${threatCount} risk factor(s): ${result.dimensions.threeD.threatTags.join(", ")}`
+          : "3D: No significant threats detected"
       updateLastLog("done", threatMsg)
 
       // Add verdict
       addLog("verdict", "pending", "Generating AI verdict...")
       await delay(200)
-      updateLastLog("done", `Verdict: ${result.overall.riskLevel.toUpperCase()} (Score: ${result.overall.score}/100)`)
+      updateLastLog(
+        "done",
+        `Verdict: ${result.overall.riskLevel.toUpperCase()} (Score: ${result.overall.score}/100)`,
+      )
 
       riskVerdict = result.overall.riskLevel
       isLoading = false
@@ -140,7 +148,11 @@
     }
   }
 
-  function addLog(type: LogEntry["type"], status: LogEntry["status"], message: string) {
+  function addLog(
+    type: LogEntry["type"],
+    status: LogEntry["status"],
+    message: string,
+  ) {
     logs = [...logs, { type, status, message }]
   }
 
@@ -249,79 +261,97 @@
     <!-- Verdict Section -->
     {#if riskVerdict && guardResponse}
       <div
-        class="pt-4 border-t border-white/5 space-y-4 animate-in fade-in slide-in-from-bottom-2"
+        class="pt-4 border-t border-white/5 animate-in fade-in slide-in-from-bottom-2"
       >
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            {#if riskVerdict === "low"}
-              <Shield class="w-4 h-4 text-emerald-400" />
-            {:else if riskVerdict === "medium"}
-              <AlertTriangle class="w-4 h-4 text-yellow-400" />
-            {:else}
-              <AlertCircle class="w-4 h-4 text-rose-400" />
-            {/if}
-            <span class="text-[10px] font-black uppercase text-white"
-              >AI Verdict: {riskVerdict.toUpperCase()}</span
-            >
+        <div class="flex gap-4">
+          <!-- Gauge -->
+          <div class="shrink-0">
+            <SecurityGauge
+              score={guardResponse.overall.score}
+              riskLevel={guardResponse.overall.riskLevel}
+              size={80}
+              strokeWidth={8}
+            />
           </div>
-          <span class="text-[10px] font-bold text-zinc-500 italic"
-            >Score: {guardResponse.overall.score}/100</span
-          >
-        </div>
 
-        <!-- LLM Explanation -->
-        <div
-          class="p-3 rounded-xl bg-{getRiskColor(riskVerdict)}-500/5 border border-{getRiskColor(riskVerdict)}-500/20"
-        >
-          <p class="text-[10px] text-{getRiskColor(riskVerdict)}-400/80 leading-relaxed">
-            {guardResponse.llmExplanation.short}
-          </p>
-        </div>
-
-        <!-- Balance Changes Preview -->
-        {#if guardResponse.dimensions.twoD.balanceChanges && guardResponse.dimensions.twoD.balanceChanges.length > 0}
-          <div class="grid grid-cols-2 gap-3 pb-2">
-            {#each guardResponse.dimensions.twoD.balanceChanges.slice(0, 2) as change}
-              <div
-                class="p-2 rounded-lg bg-zinc-900 border border-white/5 space-y-1"
+          <!-- Summary & Explanation -->
+          <div class="flex-1 space-y-3">
+            <div class="flex items-center gap-2">
+              {#if riskVerdict === "low"}
+                <Shield class="w-4 h-4 text-emerald-400" />
+              {:else if riskVerdict === "medium"}
+                <AlertTriangle class="w-4 h-4 text-yellow-400" />
+              {:else}
+                <AlertCircle class="w-4 h-4 text-rose-400" />
+              {/if}
+              <span class="text-xs font-black uppercase text-white"
+                >Verdict: <span style="color: {getRiskColor(riskVerdict)}"
+                  >{riskVerdict.toUpperCase()}</span
+                ></span
               >
-                <p class="text-[8px] font-bold text-zinc-500 uppercase">{change.symbol}</p>
-                <p class="text-[10px] font-bold {change.isIncrease ? 'text-emerald-400' : 'text-rose-400'}">
-                  {change.isIncrease ? '+' : '-'}{change.delta}
-                </p>
-              </div>
-            {/each}
-          </div>
-        {:else}
-          <div class="grid grid-cols-2 gap-3 pb-2">
-            <div class="p-2 rounded-lg bg-zinc-900 border border-white/5 space-y-1">
-              <p class="text-[8px] font-bold text-zinc-500 uppercase">Status</p>
-              <p class="text-[10px] font-bold text-white">Ready</p>
             </div>
-            <div class="p-2 rounded-lg bg-zinc-900 border border-white/5 space-y-1">
-              <p class="text-[8px] font-bold text-zinc-500 uppercase">Analysis</p>
-              <p class="text-[10px] font-bold text-emerald-400">{guardResponse.processingTimeMs}ms</p>
+
+            <div
+              class="p-3 rounded-xl bg-{getRiskColor(
+                riskVerdict,
+              )}-500/5 border border-{getRiskColor(riskVerdict)}-500/20"
+            >
+              <p
+                class="text-[10px] text-{getRiskColor(
+                  riskVerdict,
+                )}-200 leading-relaxed font-medium"
+              >
+                {guardResponse.llmExplanation.short}
+              </p>
             </div>
           </div>
-        {/if}
+        </div>
+
+        <!-- Detailed toggles or extra info could go here -->
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <div class="p-2 rounded bg-zinc-900/50 border border-white/5">
+            <p class="text-[8px] text-zinc-500 uppercase font-bold">
+              Simulation
+            </p>
+            <p class="text-[10px] text-zinc-300">
+              {guardResponse.dimensions.twoD.simulationSummary.slice(0, 30)}...
+            </p>
+          </div>
+          <div class="p-2 rounded bg-zinc-900/50 border border-white/5">
+            <p class="text-[8px] text-zinc-500 uppercase font-bold">Threats</p>
+            <p class="text-[10px] text-zinc-300">
+              {guardResponse.dimensions.threeD.threatTags.length > 0
+                ? guardResponse.dimensions.threeD.threatTags.length + " detect"
+                : "None"}
+            </p>
+          </div>
+        </div>
       </div>
     {:else if riskVerdict && !guardResponse}
       <!-- Fallback verdict display -->
       <div
         class="pt-4 border-t border-white/5 space-y-4 animate-in fade-in slide-in-from-bottom-2"
       >
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <Shield class="w-4 h-4 text-emerald-400" />
-            <span class="text-[10px] font-black uppercase text-white"
-              >AI Verdict: {riskVerdict.toUpperCase()}</span
-            >
+        <div class="flex items-center gap-4">
+          <SecurityGauge
+            score={riskVerdict === "low" ? 95 : 50}
+            riskLevel={riskVerdict || "medium"}
+            size={80}
+            strokeWidth={8}
+          />
+          <div
+            class="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex-1"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <Shield class="w-3.5 h-3.5 text-emerald-400" />
+              <span class="text-[10px] font-black uppercase text-white"
+                >Safe</span
+              >
+            </div>
+            <p class="text-[10px] text-emerald-400/80 leading-relaxed">
+              Transaction appears safe. No significant risks detected.
+            </p>
           </div>
-        </div>
-        <div class="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-          <p class="text-[10px] text-emerald-400/80 leading-relaxed">
-            Transaction appears safe. No significant risks detected.
-          </p>
         </div>
       </div>
     {/if}
