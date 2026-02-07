@@ -6,16 +6,13 @@ import { Web3Wallet, type Web3WalletTypes } from '@walletconnect/web3wallet';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import { writable, get } from 'svelte/store';
 import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
+import { CHAINS } from '../../config/viem';
 
 // WalletConnect Project ID - Get from https://cloud.walletconnect.com
 const PROJECT_ID = PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id';
 
 // Supported chains (Sepolia testnets)
-const SUPPORTED_CHAINS = [
-  'eip155:11155111', // Ethereum Sepolia
-  'eip155:11155420', // Optimism Sepolia
-  'eip155:84532',    // Base Sepolia
-];
+const SUPPORTED_CHAINS = CHAINS.map(chain => `eip155:${chain.id}`);
 
 const SUPPORTED_METHODS = [
   'eth_sendTransaction',
