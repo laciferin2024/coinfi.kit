@@ -295,6 +295,34 @@ export async function disconnectSession(topic: string): Promise<void> {
   }
 }
 
+// Disconnect all sessions
+export async function disconnectAllSessions(): Promise<void> {
+  if (!web3wallet) return;
+
+  const state = get(wcStore);
+  if (state.sessions.length === 0) return;
+
+  try {
+    const disconnectPromises = state.sessions.map(session =>
+      web3wallet!.disconnectSession({
+        topic: session.topic,
+        reason: getSdkError('USER_DISCONNECTED'),
+      })
+    );
+
+    await Promise.all(disconnectPromises);
+
+    wcStore.update(s => ({
+      ...s,
+      sessions: [],
+    }));
+
+    console.log('[WalletConnect] All sessions disconnected');
+  } catch (error) {
+    console.error('[WalletConnect] Disconnect All failed:', error);
+  }
+}
+
 // Get current address
 export function getWalletAddress(): string | null {
   return walletAddress;

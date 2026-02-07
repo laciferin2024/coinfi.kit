@@ -30,8 +30,9 @@
     }
   })
 
-  // Bridge WalletConnect pending requests to walletStore.externalRequest
+  // Bridge WalletConnect pending requests AND proposals to walletStore.externalRequest
   $effect(() => {
+    // Handle Requests
     if ($wcStore.pendingRequest && !$walletStore.externalRequest) {
       const req = $wcStore.pendingRequest
       walletStore.setExternalRequest({
@@ -40,6 +41,17 @@
         payload: req.params,
         origin: req.peer.url || req.peer.name,
       })
+    }
+    // Handle Proposals (Connection Requests)
+    else if ($wcStore.pendingProposal && !$walletStore.externalRequest) {
+      const prop = $wcStore.pendingProposal
+      walletStore.setExternalRequest({
+        id: prop.id.toString(),
+        type: "session_proposal",
+        payload: prop.params,
+        origin: prop.params.proposer.metadata.name,
+        icon: prop.params.proposer.metadata.icons[0],
+      } as any)
     }
   })
 </script>

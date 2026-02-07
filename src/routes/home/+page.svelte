@@ -1,54 +1,17 @@
 <script lang="ts">
-  import { onMount } from "svelte"
-  import { goto } from "$app/navigation"
-  import { browser } from "$app/environment"
-  import { Copy, Check, RefreshCw, Zap } from "lucide-svelte"
+  import { RefreshCw, Zap } from "lucide-svelte"
   import NetworkSelector from "$lib/components/ui/NetworkSelector.svelte"
   import HyperToggle from "$lib/components/ui/HyperToggle.svelte"
   import {
-    walletStore,
-    activeNetwork,
-    displayedTotalUsd,
-  } from "$lib/stores/wallet"
-  import { fetchBalances, lookupAddressEns } from "$lib/utils/blockchain-utils"
-  import { pairWithUri, wcStore, disconnectSession } from "$lib/walletconnect"
+    wcStore,
+    disconnectSession,
+    pairWithUri,
+    disconnectAllSessions,
+  } from "$lib/walletconnect"
 
-  let isFetching = $state(false)
-  let copied = $state(false)
   let wcUri = $state("")
   let isConnecting = $state(false)
   let connectionError = $state("")
-
-  function handleCopy() {
-    if ($walletStore.address && browser) {
-      navigator.clipboard.writeText($walletStore.address)
-      copied = true
-      setTimeout(() => (copied = false), 1500)
-    }
-  }
-
-  function truncateAddress(addr: string): string {
-    if (!addr) return ""
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
-  }
-
-  async function update() {
-    if (!$walletStore.address) return
-    isFetching = true
-    try {
-      const chainId = $activeNetwork.chainId || 11155420
-      const [res, name] = await Promise.all([
-        fetchBalances($walletStore.address, chainId),
-        lookupAddressEns($walletStore.address),
-      ])
-      if (res) walletStore.updatePortfolio(res)
-      if (name) walletStore.setEnsName(name)
-    } catch (e) {
-      console.warn("[HomePage] Sync Error:", e)
-    } finally {
-      isFetching = false
-    }
-  }
 
   async function handleConnect() {
     if (!wcUri) return
@@ -188,9 +151,19 @@
         <h3 class="text-xs font-black uppercase text-zinc-500 tracking-widest">
           Active Connections
         </h3>
-        <span class="text-[10px] font-bold text-zinc-600"
-          >{$wcStore.sessions.length} Active</span
-        >
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] font-bold text-zinc-600"
+            >{$wcStore.sessions.length} Active</span
+          >
+          {#if $wcStore.sessions.length > 0}
+            <button
+              onclick={disconnectAllSessions}
+              class="text-[10px] font-bold text-rose-500 hover:text-rose-400 transition-colors uppercase"
+            >
+              Disconnect All
+            </button>
+          {/if}
+        </div>
       </div>
 
       {#if $wcStore.sessions.length === 0}
@@ -240,28 +213,3 @@
     </div>
   </main>
 </div>
-
-<ImportAssetModal
-  isOpen={isImportModalOpen}
-  onClose={() => (isImportModalOpen = false)}
-/>
-
-<TokenDetailModal
-  token={selectedToken}
-  isOpen={isTokenDetailOpen}
-  onClose={() => (isTokenDetailOpen = false)}
-  onSend={openSendModal}
-  onReceive={openReceiveModal}
-/>
-
-<SendModal
-  token={selectedToken}
-  isOpen={isSendModalOpen}
-  onClose={() => (isSendModalOpen = false)}
-/>
-
-<ReceiveModal
-  token={selectedToken}
-  isOpen={isReceiveModalOpen}
-  onClose={() => (isReceiveModalOpen = false)}
-/>

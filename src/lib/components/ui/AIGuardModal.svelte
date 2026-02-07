@@ -11,7 +11,12 @@
     MessageCircle, // New icon
   } from "lucide-svelte"
   import { walletStore } from "$lib/stores/wallet"
-  import { wcStore, respondToRequest } from "$lib/walletconnect"
+  import {
+    wcStore,
+    respondToRequest,
+    approveSession,
+    rejectSession,
+  } from "$lib/walletconnect"
   import GuardConsole from "./GuardConsole.svelte"
   import ChatOverlay from "./ChatOverlay.svelte" // New import
   import Button from "./Button.svelte"
@@ -88,7 +93,14 @@
 
       let result: any
 
-      if (request?.type === "personal_sign" || request?.type === "eth_sign") {
+      if (request?.type === "session_proposal") {
+        // Handle WalletConnect Session Pairing
+        result = await approveSession()
+        if (!result) throw new Error("Failed to approve session")
+      } else if (
+        request?.type === "personal_sign" ||
+        request?.type === "eth_sign"
+      ) {
         const payload = request.payload as string[]
         const message = payload[0]
         result = await porto.provider.request({
@@ -96,7 +108,7 @@
           params: [message, address],
         })
       } else if (request?.type === "eth_sendTransaction") {
-        const payload = request.payload as any // Type assertion for transaction object
+        const payload = request.payload as any
         result = await porto.provider.request({
           method: "eth_sendTransaction",
           params: [payload],
@@ -105,26 +117,24 @@
         request?.type === "eth_signTypedData" ||
         request?.type === "eth_signTypedData_v4"
       ) {
-        const params = request.payload as any // Type assertion for typed data
-        // Typed data signing might need specific handling depending on Porto's support
-        // For now, we pass it through.
+        const params = request.payload as any
         result = await porto.provider.request({
           method: "eth_signTypedData_v4", // Defaulting to v4 for safety
           params: params,
         })
       } else {
-        // Fallback or unknown method
         throw new Error(`Unsupported method: ${request?.type}`)
       }
 
       status = "success"
 
-      // Respond to WalletConnect if this was a WC request
+      // Respond to WalletConnect if this was a WC request (Transaction/Sign)
       if ($wcStore.pendingRequest) {
         await respondToRequest(true, result)
       }
+      // Note: approveSession() already handles the response for proposals internally
 
-      console.log("[AI Guard] Transaction/Action Approved > Result:", result)
+      console.log("[AI Guard] Action Approved > Result:", result)
 
       setTimeout(() => {
         walletStore.setExternalRequest(null)
@@ -149,6 +159,10 @@
     // Respond to WalletConnect if this was a WC request
     if ($wcStore.pendingRequest) {
       await respondToRequest(false)
+    }
+    // Handle Session Rejection
+    if ($wcStore.pendingProposal) {
+      await rejectSession()
     }
 
     walletStore.setExternalRequest(null)
@@ -247,9 +261,13 @@
                 {guardResponse?.overall.summary || "Transaction Request"}
               </p>
               <p class="text-sm font-bold text-white italic">
-                {request.type === "eth_sendTransaction"
-                  ? "Send Transaction"
-                  : request.type}
+                {#if request.type === "session_proposal"}
+                  Connect Wallet
+                {:else if request.type === "eth_sendTransaction"}
+                  Send Transaction
+                {:else}
+                  {request.type}
+                {/if}
               </p>
             </div>
           </div>
