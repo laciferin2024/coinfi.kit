@@ -17,8 +17,11 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp'
     },
-    allowedHosts: true,
-  }, plugins: [tailwindcss(), sveltekit(), devtoolsJson()],
+  },
+  plugins: [tailwindcss(), sveltekit(), devtoolsJson()],
+  optimizeDeps: {
+    exclude: ['fsevents', 'lightningcss']
+  },
   resolve: {
     alias: {
       "@": path.resolve("./"),
@@ -35,9 +38,11 @@ export default defineConfig({
       "@components": path.resolve("./src/lib/components"),
       $components: path.resolve("./src/lib/components"),
     },
-
   },
   build: {
     outDir: path.join(__dirname, ".build"),
+    rollupOptions: {
+      external: ['fsevents', 'lightningcss']
+    }
   },
 },);

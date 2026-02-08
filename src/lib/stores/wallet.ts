@@ -14,8 +14,7 @@ import type {
 } from '$lib/types';
 import { fetchBalances } from '$lib/utils/blockchain-utils';
 
-import { tag } from '@/svelte.config.js'
-
+import { version } from "$app/environment"
 // Network Constants
 export const GLOBAL_NETWORK: Network = {
   id: 'all',
@@ -99,7 +98,7 @@ export interface WalletState {
 // Initial state
 function createInitialState(): WalletState {
   return {
-    version: tag,
+    version,
     address: safeGetItem('wallet_address'),
     ensName: null,
     isLocked: true,
