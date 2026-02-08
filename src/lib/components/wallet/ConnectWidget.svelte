@@ -8,10 +8,6 @@
   let isConnecting = $state(false)
   let copied = $state(false)
   let copyTimeout: ReturnType<typeof setTimeout> | null = null
-  let versionText = $derived(
-    $walletStore.version ? `v${$walletStore.version}` : "",
-  )
-  let versionLen = $derived(Math.max(versionText.length, 6))
 
   function formatAddress(addr: string) {
     if (!addr) return ""
@@ -70,7 +66,9 @@
                 {formatAddress($walletStore.address)}
               </p>
             {:else}
-              <p class="text-xs text-zinc-500 font-bold uppercase tracking-wider">
+              <p
+                class="text-xs text-zinc-500 font-bold uppercase tracking-wider"
+              >
                 Connected
               </p>
             {/if}
@@ -87,47 +85,28 @@
       </div>
 
       <div class="space-y-3">
-        <div
-          class="flex items-center justify-between gap-3 rounded-2xl bg-black/60 border border-white/5 px-4 py-3"
-        >
-          <div class="min-w-0">
-            <p class="text-[9px] font-bold uppercase tracking-widest text-zinc-600">
-              Wallet Address
-            </p>
-            <p class="font-mono text-xs text-zinc-200 truncate">
-              {$walletStore.address}
-            </p>
-          </div>
-          <button
-            onclick={handleCopyAddress}
-            class="shrink-0 inline-flex items-center justify-center rounded-xl bg-zinc-900 p-2 text-zinc-400 hover:text-white hover:border-orange-500/40 border border-white/5 transition-colors"
-            aria-label="Copy wallet address"
-          >
-            {#if copied}
-              <Check class="w-4 h-4 text-emerald-400" />
-            {:else}
-              <Copy class="w-4 h-4" />
-            {/if}
-          </button>
-        </div>
-
-        {#if versionText}
+        {#if $walletStore.address}
           <div
-            class="inline-flex items-center gap-2 rounded-full bg-zinc-950/60 border border-white/5 px-3 py-1.5"
+            class="flex items-center justify-between gap-3 rounded-2xl bg-black/60 border border-white/5 px-4 py-3"
           >
-            <span class="text-[9px] font-bold uppercase tracking-widest text-zinc-600"
-              >Version</span
-            >
-            <div class="scroll-container" style={`width: ${versionLen}ch`}>
+            <div class="scroll-container flex-1" style="width: 20ch">
               <div class="scroll-track">
-                <sub class="scroll-text font-mono text-zinc-500">{versionText}</sub>
-                <sub
-                  class="scroll-text font-mono text-zinc-500"
-                  aria-hidden="true"
-                  >{versionText}</sub
+                <sub class="scroll-text font-mono text-sm text-zinc-300"
+                  >{$walletStore.address}</sub
                 >
               </div>
             </div>
+            <button
+              onclick={handleCopyAddress}
+              class="shrink-0 inline-flex items-center justify-center rounded-xl bg-zinc-900 p-2 text-zinc-400 hover:text-white hover:border-orange-500/40 border border-white/5 transition-colors"
+              aria-label="Copy wallet address"
+            >
+              {#if copied}
+                <Check class="w-4 h-4 text-emerald-400" />
+              {:else}
+                <Copy class="w-4 h-4" />
+              {/if}
+            </button>
           </div>
         {/if}
       </div>
@@ -187,7 +166,7 @@
     gap: 1ch;
     white-space: nowrap;
     width: max-content;
-    animation: version-scroll 6s linear infinite;
+    animation: version-scroll 10s linear infinite;
   }
 
   .scroll-text {

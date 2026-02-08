@@ -12,7 +12,7 @@ import type {
   TransactionStatus,
   ExternalRequest
 } from '$lib/types';
-import { fetchBalances } from '$lib/utils/blockchain-utils';
+import { fetchBalances, fetchTransactionHistory } from '$lib/utils/blockchain-utils';
 
 import { version } from "$app/environment"
 // Network Constants
@@ -39,9 +39,7 @@ export const NETWORKS: (Network & { rpcUrl?: string })[] = [
   { id: 'base-sepolia', name: 'Base Sepolia', icon: '🔵', color: '#0052FF', chainId: 84532, rpcUrl: 'https://sepolia.base.org' },
 ];
 
-const DEFAULT_CONTACTS: Contact[] = [
-  { name: 'Vitalik.eth', address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', initials: 'VB' },
-];
+const DEFAULT_CONTACTS: Contact[] = [];
 
 // LocalStorage helpers
 function safeGetItem(key: string): string | null {
@@ -113,7 +111,7 @@ function createInitialState(): WalletState {
     nfts: [],
     txStatus: 'idle',
     simulationLogs: [],
-    activities: safeGetJSON<Activity[]>('wallet_activities', []),
+    activities: safeGetJSON<Activity[]>('wallet_activities', []).filter(a => !a.id.startsWith('tx-')),
     contacts: safeGetJSON<Contact[]>('wallet_contacts', DEFAULT_CONTACTS),
     lastActive: new Date(),
     recentDapps: safeGetJSON<Array<{ id: string; lastUsed: number }>>('wallet_recent_dapps', []),
@@ -282,6 +280,11 @@ function createWalletStore() {
         fetchBalances(address).then(balances => {
           if (balances) walletStore.updatePortfolio(balances);
         });
+
+        // Refresh history
+        fetchTransactionHistory(address, networkId).then(history => {
+          if (history) walletStore.syncActivities(history);
+        });
       }
       return true;
     },
@@ -293,6 +296,12 @@ function createWalletStore() {
         const balances = await fetchBalances(state.address);
         if (balances) {
           walletStore.updatePortfolio(balances);
+        }
+
+        // Also refresh history
+        const history = await fetchTransactionHistory(state.address, state.activeNetworkId);
+        if (history) {
+          walletStore.syncActivities(history);
         }
       }
     },

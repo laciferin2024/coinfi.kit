@@ -53,29 +53,13 @@ export async function fetchBalances(address: string): Promise<{
     const nativeTokens = results.filter((t): t is TokenAsset => t !== null);
 
     // Calculate totals
-    // Note: 'native' and 'usdc' fields in the return object are simplified/legacy summaries.
-    // We'll use the total value of all native tokens for 'native' (as a string? simplistic), 
-    // or just the primary network's balance? 
-    // Let's sum up total USD value of native tokens.
     const totalNativeUsd = nativeTokens.reduce((sum, t) => sum + t.totalValueUsd, 0);
 
-    // Mock USDC (keep existing mock for now as requested)
-    const mockUsdc: TokenAsset = {
-      id: 'usdc-optimism-sepolia',
-      symbol: 'USDC',
-      name: 'USD Coin',
-      icon: '💵',
-      balance: '100.00',
-      priceUsd: 1,
-      totalValueUsd: 100,
-      network: 'Optimism Sepolia'
-    };
-
     return {
-      native: nativeTokens.find(t => t.network === 'Optimism Sepolia')?.balance || '0.00', // Default to OpSepolia for summary
-      usdc: '100.00',
-      totalUsd: totalNativeUsd + 100, // Native + Mock USDC
-      tokens: [...nativeTokens, mockUsdc]
+      native: nativeTokens.find(t => t.network === 'Optimism Sepolia')?.balance || '0.00', // Default to OpSepolia
+      usdc: '0.00', // No longer using mock USDC
+      totalUsd: totalNativeUsd,
+      tokens: nativeTokens
     };
   } catch (error) {
     console.error('[Blockchain] Failed to fetch balances:', error);
@@ -99,35 +83,61 @@ export async function lookupAddressEns(address: string): Promise<string | null> 
   }
 }
 
+// Explorer API mapping
+const EXPLORER_APIS: Record<string, string> = {
+  'optimism-sepolia': 'https://api-sepolia-optimism.etherscan.io/api',
+  'base-sepolia': 'https://api-sepolia.basescan.org/api',
+  'ethereum-sepolia': 'https://api-sepolia.etherscan.io/api'
+};
+
 // Fetch transaction history
 export async function fetchTransactionHistory(
   address: string,
   networkId: string
 ): Promise<Activity[]> {
-  try {
-    // For demo purposes, return mock data
-    // In production, this would call an explorer API like Etherscan
-    const now = Date.now();
-    const mockActivities: Activity[] = [
-      {
-        id: `tx-${now}-1`,
-        hash: '0x1234...abcd',
-        type: 'receive',
-        amount: '0.01',
-        symbol: 'ETH',
-        address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
-        timestamp: now - 86400000, // 1 day ago
-        status: 'completed',
-        network: getNetworkNameFromId(networkId),
-        chainId: getChainIdFromNetworkId(networkId),
-        explorerUrl: `https://sepolia-optimism.etherscan.io/tx/0x1234`
-      }
-    ];
-    return mockActivities;
-  } catch (error) {
-    console.error('[Blockchain] Failed to fetch history:', error);
+  const apiUrl = EXPLORER_APIS[networkId];
+
+  // If network not supported or 'all', we might return empty or try to aggregate (simplification: return empty for 'all')
+  if (!apiUrl) {
     return [];
   }
+
+  try {
+    // Etherscan-compatible API call
+    const response = await fetch(`${apiUrl}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=20&sort=desc`);
+    const data = await response.json();
+
+    if (data.status === '1' && Array.isArray(data.result)) {
+      return data.result.map((tx: any) => ({
+        id: tx.hash,
+        hash: tx.hash,
+        type: tx.from.toLowerCase() === address.toLowerCase() ? 'send' : 'receive',
+        amount: formatEther(BigInt(tx.value)),
+        symbol: 'ETH', // Simplified, assumes native token
+        address: tx.from.toLowerCase() === address.toLowerCase() ? tx.to : tx.from,
+        timestamp: parseInt(tx.timeStamp) * 1000,
+        status: tx.isError === '0' ? 'completed' : 'failed',
+        network: getNetworkNameFromId(networkId),
+        chainId: getChainIdFromNetworkId(networkId),
+        explorerUrl: getExplorerUrl(networkId, tx.hash)
+      }));
+    }
+
+    return [];
+  } catch (error) {
+    console.error(`[Blockchain] Failed to fetch history for ${networkId}:`, error);
+    return [];
+  }
+}
+
+function getExplorerUrl(networkId: string, hash: string): string {
+  const baseUrls: Record<string, string> = {
+    'optimism-sepolia': 'https://sepolia-optimism.etherscan.io',
+    'base-sepolia': 'https://sepolia.basescan.org',
+    'ethereum-sepolia': 'https://sepolia.etherscan.io'
+  };
+  const baseUrl = baseUrls[networkId];
+  return baseUrl ? `${baseUrl}/tx/${hash}` : '#';
 }
 
 // Helper functions
