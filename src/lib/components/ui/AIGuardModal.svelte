@@ -42,36 +42,77 @@
   )
   let verdict = $state<RiskLevel | null>(null)
   let guardResponse = $state<AIGuardResponse | null>(null)
-  let showChat = $state(false) // New state
+  let showChat = $state(false)
+  let isAutoApproving = $state(false) // Track auto-approval for low risk
 
   // Extract transaction data from request
   let transactionData = $derived(() => {
-    if (!request || request.type !== "eth_sendTransaction") return null
-    const payload = request.payload as any
-    return {
-      chainId:
-        $walletStore.activeNetworkId === "ethereum-sepolia"
-          ? 11155111
-          : $walletStore.activeNetworkId === "base-sepolia"
-            ? 84532
-            : $walletStore.activeNetworkId === "optimism-sepolia"
-              ? 11155420
-              : $walletStore.activeNetworkId === "odyssey"
-                ? 911867
-                : 84532,
-      from: $walletStore.address || "",
-      to: payload?.to || "",
-      value: payload?.value || "0",
-      data: payload?.data || "0x",
+    if (!request) return null
+
+    // Determine chainId based on network
+    const chainId =
+      $walletStore.activeNetworkId === "ethereum-sepolia"
+        ? 11155111
+        : $walletStore.activeNetworkId === "base-sepolia"
+          ? 84532
+          : $walletStore.activeNetworkId === "optimism-sepolia"
+            ? 11155420
+            : $walletStore.activeNetworkId === "odyssey"
+              ? 911867
+              : 84532
+
+    const from = $walletStore.address || ""
+
+    // Handle different request types
+    if (request.type === "eth_sendTransaction") {
+      const payload = request.payload as any
+      return {
+        chainId,
+        from,
+        to: payload?.to || "",
+        value: payload?.value || "0",
+        data: payload?.data || "0x",
+      }
+    } else if (
+      request.type === "personal_sign" ||
+      request.type === "eth_sign"
+    ) {
+      // For signing requests, we don't have a real "to" address
+      // Use a placeholder for basic analysis
+      const payload = request.payload as string[]
+      return {
+        chainId,
+        from,
+        to: from, // Self-sign (no contract interaction)
+        value: "0",
+        data: payload?.[0] || "0x", // The message being signed
+      }
+    } else if (
+      request.type === "eth_signTypedData" ||
+      request.type === "eth_signTypedData_v4"
+    ) {
+      const params = request.payload as [string, string]
+      return {
+        chainId,
+        from,
+        to: from, // Self-sign
+        value: "0",
+        data: params?.[1] || "0x", // The typed data
+      }
+    } else if (request.type === "session_proposal") {
+      // Session proposals don't need AI Guard analysis
+      return null
     }
+
+    return null
   })
 
   function handleGuardComplete(v: RiskLevel, response: AIGuardResponse | null) {
     verdict = v
     guardResponse = response
-    status = "ready"
 
     if (v === "blocked") {
+      status = "ready"
       walletStore.addActivity({
         id: crypto.randomUUID(),
         type: "blocked",
@@ -83,6 +124,16 @@
         network: $walletStore.activeNetworkId,
         chainId: 0,
       })
+    } else if (v === "low") {
+      // Auto-approve for low risk transactions
+      isAutoApproving = true
+      // Small delay to show the verdict before auto-approving
+      setTimeout(() => {
+        handleApprove()
+      }, 800)
+    } else {
+      // Medium/High risk - require manual approval
+      status = "ready"
     }
   }
 
@@ -167,6 +218,7 @@
       }, 1500)
     } catch (error: any) {
       console.error("[AI Guard] Approval Failed:", error)
+      isAutoApproving = false // Reset auto-approve state
       // Determine if we should show error state or just close
       // For now, let's reset to ready but maybe show an alert (future improvement)
       // or just close if it's a user rejection.
@@ -311,7 +363,7 @@
 
       <!-- Main Section -->
       <div class="flex-1 overflow-y-auto p-6 space-y-6">
-        {#if status === "simulating" || status === "ready"}
+        {#if status === "simulating" || status === "ready" || isAutoApproving}
           <div class="space-y-4">
             <div class="flex items-center justify-between px-2">
               <h4
@@ -320,18 +372,37 @@
                 <Shield class="w-3.5 h-3.5" /> AI Guard Engine
               </h4>
               <div
-                class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[8px] font-black uppercase"
+                class="flex items-center gap-1.5 px-2 py-0.5 rounded {isAutoApproving
+                  ? 'bg-emerald-500/20 text-emerald-300'
+                  : 'bg-emerald-500/10 text-emerald-400'} text-[8px] font-black uppercase"
               >
                 <span
                   class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
                 ></span>
-                Active
+                {isAutoApproving ? "Safe • Auto-signing" : "Active"}
               </div>
             </div>
             <GuardConsole
               transactionData={transactionData()}
               onComplete={handleGuardComplete}
             />
+
+            {#if isAutoApproving}
+              <!-- Auto-approve indicator -->
+              <div
+                class="flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
+                transition:fly={{ y: 10, duration: 300 }}
+              >
+                <div
+                  class="w-5 h-5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin"
+                ></div>
+                <p
+                  class="text-xs text-emerald-400 font-bold uppercase tracking-widest"
+                >
+                  Low Risk → Auto-signing with Passkey...
+                </p>
+              </div>
+            {/if}
           </div>
         {/if}
 
@@ -393,8 +464,8 @@
         {/if}
       </div>
 
-      <!-- Footer Buttons -->
-      {#if status === "ready"}
+      <!-- Footer Buttons - Only show for manual approval (medium/high risk) -->
+      {#if status === "ready" && !isAutoApproving}
         <div class="p-8 pt-4 grid grid-cols-5 gap-3 shrink-0">
           <Button
             onclick={handleReject}

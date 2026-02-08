@@ -51,8 +51,13 @@
     guardResponse = null
     riskVerdict = null
 
-    // If no transaction data, use fallback simulation
-    if (!transactionData) {
+    // If no transaction data or missing required fields, use fallback simulation
+    if (
+      !transactionData ||
+      !transactionData.chainId ||
+      !transactionData.from ||
+      !transactionData.to
+    ) {
       await runFallbackSimulation()
       return
     }
