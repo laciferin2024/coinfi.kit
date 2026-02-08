@@ -8,6 +8,7 @@
   import DAppBrowser from "$lib/components/dapps/DAppBrowser.svelte"
   import { DAPPS } from "$lib/data/dapps"
   import AIGuardModal from "$lib/components/ui/AIGuardModal.svelte"
+  import WalletConnectModal from "$lib/components/ui/WalletConnectModal.svelte"
   import { wcStore, initWalletConnect } from "$lib/walletconnect"
 
   interface Props {
@@ -35,9 +36,10 @@
     walletStore.restoreConnection()
   })
 
-  // Bridge WalletConnect pending requests AND proposals to walletStore.externalRequest
+  // Bridge WalletConnect pending requests to walletStore.externalRequest
+  // Note: Session proposals (connection requests) are NOT routed here - they use WalletConnectModal
   $effect(() => {
-    // Handle Requests
+    // Only handle actual transaction/signing requests, NOT session proposals
     if ($wcStore.pendingRequest && !$walletStore.externalRequest) {
       const req = $wcStore.pendingRequest
       walletStore.setExternalRequest({
@@ -46,17 +48,6 @@
         payload: req.params,
         origin: req.peer.url || req.peer.name,
       })
-    }
-    // Handle Proposals (Connection Requests)
-    else if ($wcStore.pendingProposal && !$walletStore.externalRequest) {
-      const prop = $wcStore.pendingProposal
-      walletStore.setExternalRequest({
-        id: prop.id.toString(),
-        type: "session_proposal",
-        payload: prop.params,
-        origin: prop.params.proposer.metadata.name,
-        icon: prop.params.proposer.metadata.icons[0],
-      } as any)
     }
   })
 
@@ -146,6 +137,10 @@
 
       {#if $walletStore.externalRequest}
         <AIGuardModal onClose={() => {}} />
+      {/if}
+
+      {#if $wcStore.pendingProposal}
+        <WalletConnectModal onClose={() => {}} />
       {/if}
     </div>
   </div>

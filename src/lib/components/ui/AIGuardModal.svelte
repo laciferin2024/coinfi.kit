@@ -107,14 +107,8 @@
 
       let result: any
 
-      if (request?.type === "session_proposal") {
-        // Handle WalletConnect Session Pairing
-        result = await approveSession()
-        if (!result) throw new Error("Failed to approve session")
-      } else if (
-        request?.type === "personal_sign" ||
-        request?.type === "eth_sign"
-      ) {
+      // Handle transaction and signing requests
+      if (request?.type === "personal_sign" || request?.type === "eth_sign") {
         const payload = request.payload as string[]
         const message = payload[0]
         result = await porto.provider.request({
