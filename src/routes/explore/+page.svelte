@@ -24,6 +24,7 @@
     disconnectSession,
   } from "$lib/walletconnect"
   import Button from "$lib/components/ui/Button.svelte"
+  import { DAPPS } from "$lib/data/dapps"
 
   let wcUri = $state("")
   let isPairing = $state(false)
@@ -302,6 +303,64 @@
             </div>
           </div>
         {/if}
+
+        <!-- Featured DApps -->
+        <div class="pt-8 space-y-4">
+          <div class="flex items-center justify-between px-2">
+            <h3
+              class="text-xs font-black uppercase text-zinc-500 tracking-widest flex items-center gap-2"
+            >
+              <Globe class="w-3 h-3" /> Featured DApps
+            </h3>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            {#each DAPPS as dapp}
+              <button
+                class="text-left p-4 rounded-3xl bg-zinc-900/50 border border-white/5 hover:bg-zinc-800 hover:border-white/10 transition-all group relative overflow-hidden"
+                onclick={() => walletStore.openDAppBrowser(dapp.id)}
+              >
+                <div
+                  class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+                ></div>
+
+                <div class="relative z-10 space-y-3">
+                  <div class="flex items-start justify-between">
+                    <img
+                      src={dapp.icon}
+                      alt={dapp.name}
+                      class="w-10 h-10 rounded-xl bg-black border border-white/10"
+                    />
+                    {#if dapp.auditStatus === "unknown"}
+                      <div
+                        class="px-2 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-[8px] font-black uppercase text-orange-500"
+                      >
+                        New
+                      </div>
+                    {:else if dapp.verified}
+                      <div
+                        class="px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-black uppercase text-emerald-500"
+                      >
+                        Verified
+                      </div>
+                    {/if}
+                  </div>
+
+                  <div>
+                    <h4
+                      class="font-bold text-sm text-white leading-tight group-hover:text-orange-500 transition-colors"
+                    >
+                      {dapp.name}
+                    </h4>
+                    <p class="text-[10px] text-zinc-500 line-clamp-2 mt-1">
+                      {dapp.desc}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            {/each}
+          </div>
+        </div>
 
         <!-- Features -->
         <div class="grid grid-cols-3 gap-3 pt-4">

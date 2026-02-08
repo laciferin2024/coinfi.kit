@@ -75,7 +75,9 @@ export type ThreatTag =
   | 'phishing_suspected'
   | 'honeypot_suspected'
   | 'reentrancy_risk'
-  | 'mev_vulnerable';
+  | 'mev_vulnerable'
+  | 'honey_pot'
+  | 'drainer_signature';
 
 export interface LLMExplanation {
   short: string;

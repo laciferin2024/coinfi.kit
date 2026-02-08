@@ -105,7 +105,7 @@
         const message = payload[0]
         result = await porto.provider.request({
           method: "personal_sign",
-          params: [message, address],
+          params: [message, address as `0x${string}`],
         })
       } else if (request?.type === "eth_sendTransaction") {
         const payload = request.payload as any
@@ -380,9 +380,10 @@
           </Button>
           <Button
             onclick={handleApprove}
-            class="col-span-3 h-14 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-orange-500/20"
+            disabled={verdict === "blocked"}
+            class="col-span-3 h-14 rounded-2xl bg-orange-600 hover:bg-orange-700 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-orange-500/20 disabled:shadow-none transition-all"
           >
-            Approve Interaction →
+            {verdict === "blocked" ? "Action Blocked" : "Approve Interaction →"}
           </Button>
         </div>
       {/if}

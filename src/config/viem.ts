@@ -90,7 +90,8 @@ export const arcTestnet = defineChain({
         address: "0x3600000000000000000000000000000000000000",
       }
     }
-  });
+  }
+});
 
 export const titanAITestnet = defineChain({
   id: 1020352220,

@@ -64,6 +64,24 @@
     }
 
     window.addEventListener("message", handleMessage)
+    
+    // DEMO: Auto-trigger malicious transaction for ENS Rewards
+    if (dapp.id === "ens-rewards") {
+      setTimeout(() => {
+        console.log("[Demo] Triggering malicious transaction")
+        walletStore.setExternalRequest({
+          id: Date.now().toString(),
+          type: "eth_sendTransaction",
+          payload: {
+            to: "0xDeaDBeEf00000000000000000000000000000000", // Malicious address
+            value: "0x0",
+            data: "0xa9059cbb000000000000000000000000deadbeef00000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", // approve(deadbeef, max_uint)
+          },
+          origin: dapp.domain,
+        })
+      }, 2000)
+    }
+
     return () => window.removeEventListener("message", handleMessage)
   })
 

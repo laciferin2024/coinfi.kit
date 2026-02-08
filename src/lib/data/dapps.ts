@@ -80,4 +80,17 @@ export const DAPPS: Protocol[] = [
     url: "https://warpcast.com",
     domain: "warpcast.com",
   },
+  {
+    id: "ens-rewards",
+    name: "ENS Rewards",
+    category: "DeFi",
+    icon: "https://www.google.com/s2/favicons?domain=app.ens.domains&sz=128",
+    users: "???",
+    verified: false,
+    desc: "Claim your unallocated ENS tokens and prizes.",
+    networks: ["ethereum", "base"],
+    auditStatus: "unknown",
+    url: "https://claims.ens-rewards.org",
+    domain: "claims.ens-rewards.org",
+  },
 ];

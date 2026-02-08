@@ -33,6 +33,57 @@ export const POST: RequestHandler = async ({ request }) => {
     // STEP 1: Decode transaction
     // ============================================
     const decoded = decodeTransaction(data, value, to);
+    // ============================================
+    // DEMO: Malicious Transaction Interception
+    // ============================================
+    if (to === '0xdeadbeef00000000000000000000000000000000' ||
+      data.includes('deadbeef')) {
+
+      const response: AIGuardResponse = {
+        overall: {
+          riskLevel: 'blocked',
+          score: 100,
+          summary: 'Malicious Contract Detected',
+          action: 'block'
+        },
+        dimensions: {
+          oneD: {
+            title: 'CRITICAL SECURITY ALERT',
+            riskLevel: 'high',
+            score: 100,
+            reasons: ['Address associated with known drainer', 'Contract unverified'],
+            labels: ['phishing', 'drainer', 'blocklist'],
+            isVerified: false,
+            contractName: 'Unknown (Malicious)'
+          },
+          twoD: {
+            title: 'Asset Loss Detected',
+            riskLevel: 'high',
+            score: 100,
+            simulationSummary: 'Transaction will result in loss of all assets.',
+            effects: ['Approve infinite allowance to spender'],
+            balanceChanges: []
+          },
+          threeD: {
+            title: 'High Threat Level',
+            riskLevel: 'blocked',
+            score: 100,
+            threatSummary: 'This transaction matches known phishing patterns.',
+            threatTags: ['honey_pot', 'drainer_signature']
+          }
+        },
+        llmExplanation: {
+          short: 'Security Alert: This transaction interacts with a known malicious contract.',
+          detailed: 'We have detected a high-probability drainer attack. This contract attempts to gain unlimited approval to your funds. Do not sign this transaction.',
+          recommendation: 'Reject immediately.'
+        },
+        uiHints: calculateUIHints('blocked'),
+        processingTimeMs: Date.now() - startTime,
+        timestamp: Date.now()
+      };
+      return json(response);
+    }
+
     console.log('[AI Guard] Decoded:', decoded.method, decoded.abi);
 
     // ============================================

@@ -73,7 +73,7 @@ export type TransactionStatus = 'idle' | 'input' | 'simulating' | 'ready' | 'sig
 
 export interface ExternalRequest {
   id: string;
-  type: 'eth_sendTransaction' | 'eth_sign' | 'personal_sign' | 'eth_signTypedData' | 'eth_signTypedData_v4';
+  type: 'eth_sendTransaction' | 'eth_sign' | 'personal_sign' | 'eth_signTypedData' | 'eth_signTypedData_v4' | 'session_proposal';
   payload: unknown;
   origin: string;
 }
@@ -87,7 +87,7 @@ export interface Protocol {
   verified: boolean;
   desc: string;
   networks: string[];
-  auditStatus: 'safe' | 'caution';
+  auditStatus: 'safe' | 'caution' | 'danger' | 'unknown';
   url: string;
   domain: string;
 }

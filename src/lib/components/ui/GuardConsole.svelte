@@ -292,14 +292,16 @@
             </div>
 
             <div
-              class="p-3 rounded-xl bg-{getRiskColor(
-                riskVerdict,
-              )}-500/5 border border-{getRiskColor(riskVerdict)}-500/20"
+              class="p-3 rounded-xl border transition-all duration-500 {riskVerdict ===
+              'blocked'
+                ? 'bg-red-500/20 border-red-500 animate-pulse'
+                : `bg-${getRiskColor(riskVerdict)}-500/5 border-${getRiskColor(riskVerdict)}-500/20`}"
             >
               <p
-                class="text-[10px] text-{getRiskColor(
-                  riskVerdict,
-                )}-200 leading-relaxed font-medium"
+                class="text-[10px] leading-relaxed font-medium {riskVerdict ===
+                'blocked'
+                  ? 'text-red-200 font-bold'
+                  : `text-${getRiskColor(riskVerdict)}-200`}"
               >
                 {guardResponse.llmExplanation.short}
               </p>
