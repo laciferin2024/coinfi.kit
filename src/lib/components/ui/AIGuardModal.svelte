@@ -50,13 +50,15 @@
     const payload = request.payload as any
     return {
       chainId:
-        $walletStore.activeNetworkId === "base-sepolia"
-          ? 84532
-          : $walletStore.activeNetworkId === "optimism-sepolia"
-            ? 11155420
-            : $walletStore.activeNetworkId === "odyssey"
-              ? 911867
-              : 84532,
+        $walletStore.activeNetworkId === "ethereum-sepolia"
+          ? 11155111
+          : $walletStore.activeNetworkId === "base-sepolia"
+            ? 84532
+            : $walletStore.activeNetworkId === "optimism-sepolia"
+              ? 11155420
+              : $walletStore.activeNetworkId === "odyssey"
+                ? 911867
+                : 84532,
       from: $walletStore.address || "",
       to: payload?.to || "",
       value: payload?.value || "0",

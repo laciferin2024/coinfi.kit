@@ -43,7 +43,7 @@ export const POST: RequestHandler = async ({ request }) => {
         overall: {
           riskLevel: 'blocked',
           score: 100,
-          summary: 'Malicious Contract Detected',
+          summary: 'CRITICAL: DRAINER DETECTED',
           action: 'block'
         },
         dimensions: {
@@ -51,31 +51,35 @@ export const POST: RequestHandler = async ({ request }) => {
             title: 'CRITICAL SECURITY ALERT',
             riskLevel: 'high',
             score: 100,
-            reasons: ['Address associated with known drainer', 'Contract unverified'],
-            labels: ['phishing', 'drainer', 'blocklist'],
+            reasons: ['Address associated with known wallet drainer', 'Found in 12 security reports in last 24h', 'Contract source code unverified'],
+            labels: ['phishing', 'drainer', 'high_risk'],
             isVerified: false,
             contractName: 'Unknown (Malicious)'
           },
           twoD: {
-            title: 'Asset Loss Detected',
+            title: 'ASSET LOSS PREVENTED',
             riskLevel: 'high',
             score: 100,
-            simulationSummary: 'Transaction will result in loss of all assets.',
-            effects: ['Approve infinite allowance to spender'],
+            simulationSummary: 'CRITICAL: This transaction will EMPTY your wallet.',
+            effects: [
+              'Requesting unlimited approval for ALL tokens',
+              'Hidden transfer to suspect address detected',
+              'Gas price manipulated to frontrun rejection'
+            ],
             balanceChanges: []
           },
           threeD: {
-            title: 'High Threat Level',
+            title: 'THREAT MODEL MATCH',
             riskLevel: 'blocked',
             score: 100,
-            threatSummary: 'This transaction matches known phishing patterns.',
-            threatTags: ['honey_pot', 'drainer_signature']
+            threatSummary: 'Signature matches known "Monkey Drainer" variant.',
+            threatTags: ['honey_pot', 'drainer_signature', 'malicious_approve']
           }
         },
         llmExplanation: {
-          short: 'Security Alert: This transaction interacts with a known malicious contract.',
-          detailed: 'We have detected a high-probability drainer attack. This contract attempts to gain unlimited approval to your funds. Do not sign this transaction.',
-          recommendation: 'Reject immediately.'
+          short: 'STOP: This is a confirmed wallet drainer attempt.',
+          detailed: 'Our AI Guard has intercepted a sophisticated drainer attack. The contract you are interacting with is disguised as a multi-send tool but actually contains hidden logic to gain unlimited access to your assets. If you sign this, you will lose all funds.',
+          recommendation: 'DO NOT SIGN. Close this DApp immediately.'
         },
         uiHints: calculateUIHints('blocked'),
         processingTimeMs: Date.now() - startTime,

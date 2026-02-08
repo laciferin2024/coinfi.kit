@@ -35,12 +35,20 @@ export const KNOWN_SAFE_CONTRACTS: Record<number, Set<string>> = {
   11155420: new Set([
     '0x4200000000000000000000000000000000000006', // WETH
     '0x5fd84259d66Cd46123540766Be93DFE6D43130D7', // Test USDC
+    '0xD152f549545093347A162Dce210e7293f1452150', // Disperse.app
   ]),
 
   // Base Sepolia (84532)
   84532: new Set([
     '0x4200000000000000000000000000000000000006', // WETH
     '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // Test USDC
+    '0xD152f549545093347A162Dce210e7293f1452150', // Disperse.app
+  ]),
+
+  // Ethereum Sepolia (11155111)
+  11155111: new Set([
+    '0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9', // WETH
+    '0xD152f549545093347A162Dce210e7293f1452150', // Disperse.app
   ]),
 
   // Arbitrum One (42161)
@@ -93,6 +101,7 @@ export const SAFE_CONTRACT_NAMES: RegExp[] = [
   /^(USDC|USDCoin|FiatToken)/i,
   /^(DAI|DaiStablecoin)/i,
   /^(USDT|TetherToken)/i,
+  /^(Disperse)/i,
 ];
 
 /**
