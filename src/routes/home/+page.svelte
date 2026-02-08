@@ -94,83 +94,67 @@
       </div>
 
       <div class="bg-zinc-900 border border-white/5 rounded-3xl p-6 space-y-4">
-        {#if !showScanner}
-          <div class="relative">
-            <input
-              type="text"
-              bind:value={wcUri}
-              placeholder="wc:..."
-              class="w-full bg-black border border-white/10 rounded-xl px-4 py-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 transition-colors font-mono"
-              onkeydown={(e) => {
-                if (e.key === "Enter") {
-                  handleConnect()
-                }
-              }}
-            />
-            {#if isConnecting}
-              <div class="absolute right-3 top-3">
-                <RefreshCw class="w-5 h-5 text-orange-500 animate-spin" />
-              </div>
-            {:else}
-              <button
-                onclick={handleConnect}
-                class="absolute right-2 top-2 p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
-              >
-                <Zap class="w-4 h-4" />
-              </button>
-            {/if}
-          </div>
-
-          {#if connectionError}
-            <p
-              class="text-xs text-rose-500 font-bold text-center bg-rose-500/10 py-1 rounded"
-            >
-              {connectionError}
-            </p>
-          {/if}
-
-          <div class="grid grid-cols-2 gap-3">
-            <button
-              onclick={toggleScanner}
-              class="p-4 rounded-xl bg-zinc-950 border border-white/5 hover:border-orange-500/30 transition-colors flex flex-col items-center gap-2 group"
-            >
-              <div
-                class="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center group-hover:bg-orange-600 transition-colors"
-              >
-                <QrCode class="w-5 h-5 text-white" />
-              </div>
-              <span class="text-[10px] font-bold uppercase text-zinc-500"
-                >Scan QR</span
-              >
-            </button>
+        <div class="relative">
+          <input
+            type="text"
+            bind:value={wcUri}
+            placeholder="wc:..."
+            class="w-full bg-black border border-white/10 rounded-xl px-4 py-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 transition-colors font-mono"
+            onkeydown={(e) => {
+              if (e.key === "Enter") {
+                handleConnect()
+              }
+            }}
+          />
+          {#if isConnecting}
+            <div class="absolute right-3 top-3">
+              <RefreshCw class="w-5 h-5 text-orange-500 animate-spin" />
+            </div>
+          {:else}
             <button
               onclick={handleConnect}
-              disabled={!wcUri || isConnecting}
-              class="p-4 rounded-xl bg-orange-600 hover:bg-orange-700 transition-colors flex flex-col items-center gap-2 text-white shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:grayscale"
+              class="absolute right-2 top-2 p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
             >
-              <div
-                class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
-              >
-                <Zap class="w-5 h-5 text-white" />
-              </div>
-              <span class="text-[10px] font-bold uppercase">Connect</span>
+              <Zap class="w-4 h-4" />
             </button>
-          </div>
-        {:else}
-          <!-- QR Scanner Section -->
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <h3 class="text-sm font-bold text-white">Scan QR Code</h3>
-              <button
-                onclick={toggleScanner}
-                class="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors"
-              >
-                <X class="w-4 h-4 text-zinc-400" />
-              </button>
-            </div>
-            <QRScanner onScan={handleQRScan} />
-          </div>
+          {/if}
+        </div>
+
+        {#if connectionError}
+          <p
+            class="text-xs text-rose-500 font-bold text-center bg-rose-500/10 py-1 rounded"
+          >
+            {connectionError}
+          </p>
         {/if}
+
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            onclick={toggleScanner}
+            class="p-4 rounded-xl bg-zinc-950 border border-white/5 hover:border-orange-500/30 transition-colors flex flex-col items-center gap-2 group"
+          >
+            <div
+              class="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center group-hover:bg-orange-600 transition-colors"
+            >
+              <QrCode class="w-5 h-5 text-white" />
+            </div>
+            <span class="text-[10px] font-bold uppercase text-zinc-500"
+              >Scan QR</span
+            >
+          </button>
+          <button
+            onclick={handleConnect}
+            disabled={!wcUri || isConnecting}
+            class="p-4 rounded-xl bg-orange-600 hover:bg-orange-700 transition-colors flex flex-col items-center gap-2 text-white shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:grayscale"
+          >
+            <div
+              class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
+            >
+              <Zap class="w-5 h-5 text-white" />
+            </div>
+            <span class="text-[10px] font-bold uppercase">Connect</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -241,4 +225,52 @@
       {/if}
     </div>
   </main>
+
+  <!-- QR Scanner Modal -->
+  {#if showScanner}
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      onclick={(e) => {
+        if (e.target === e.currentTarget) toggleScanner()
+      }}
+    >
+      <div
+        class="bg-zinc-950 border border-white/10 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl"
+      >
+        <!-- Header -->
+        <div
+          class="flex items-center justify-between p-6 border-b border-white/5"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center"
+            >
+              <QrCode class="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 class="font-black text-white uppercase tracking-tight">
+                Scan QR Code
+              </h2>
+              <p class="text-[10px] text-zinc-500">
+                Point camera at WalletConnect QR
+              </p>
+            </div>
+          </div>
+          <button
+            onclick={toggleScanner}
+            class="text-zinc-500 hover:text-white transition-colors"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <!-- Scanner -->
+        <div class="p-6">
+          <QRScanner onScan={handleQRScan} />
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
