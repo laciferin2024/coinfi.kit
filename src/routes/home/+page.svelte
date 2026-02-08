@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { RefreshCw, Zap } from "lucide-svelte"
+  import { RefreshCw, Zap, QrCode, X } from "lucide-svelte"
   import NetworkSelector from "$lib/components/ui/NetworkSelector.svelte"
   import HyperToggle from "$lib/components/ui/HyperToggle.svelte"
   import {
@@ -9,10 +9,12 @@
     disconnectAllSessions,
   } from "$lib/walletconnect"
   import ConnectWidget from "$lib/components/wallet/ConnectWidget.svelte"
+  import QRScanner from "$lib/components/ui/QRScanner.svelte"
 
   let wcUri = $state("")
   let isConnecting = $state(false)
   let connectionError = $state("")
+  let showScanner = $state(false)
 
   async function handleConnect() {
     if (!wcUri) return
@@ -36,12 +38,19 @@
     }
   }
 
-  async function handlePaste() {
-    try {
-      const text = await navigator.clipboard.readText()
-      if (text) wcUri = text
-    } catch (e) {
-      console.error("Failed to paste:", e)
+  function handleQRScan(result: string) {
+    console.log("QR Scanned:", result)
+    wcUri = result
+    showScanner = false
+    // Auto-connect after scan
+    handleConnect()
+  }
+
+  function toggleScanner() {
+    showScanner = !showScanner
+    if (showScanner) {
+      wcUri = ""
+      connectionError = ""
     }
   }
 </script>
@@ -80,72 +89,88 @@
           Connect DApp
         </h2>
         <p class="text-xs text-zinc-500 font-bold uppercase tracking-widest">
-          Paste WalletConnect URI below
+          Scan QR or paste WalletConnect URI
         </p>
       </div>
 
       <div class="bg-zinc-900 border border-white/5 rounded-3xl p-6 space-y-4">
-        <div class="relative">
-          <input
-            type="text"
-            bind:value={wcUri}
-            placeholder="wc:..."
-            class="w-full bg-black border border-white/10 rounded-xl px-4 py-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 transition-colors font-mono"
-            onkeydown={(e) => {
-              if (e.key === "Enter") {
-                handleConnect()
-              }
-            }}
-          />
-          {#if isConnecting}
-            <div class="absolute right-3 top-3">
-              <RefreshCw class="w-5 h-5 text-orange-500 animate-spin" />
-            </div>
-          {:else}
+        {#if !showScanner}
+          <div class="relative">
+            <input
+              type="text"
+              bind:value={wcUri}
+              placeholder="wc:..."
+              class="w-full bg-black border border-white/10 rounded-xl px-4 py-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 transition-colors font-mono"
+              onkeydown={(e) => {
+                if (e.key === "Enter") {
+                  handleConnect()
+                }
+              }}
+            />
+            {#if isConnecting}
+              <div class="absolute right-3 top-3">
+                <RefreshCw class="w-5 h-5 text-orange-500 animate-spin" />
+              </div>
+            {:else}
+              <button
+                onclick={handleConnect}
+                class="absolute right-2 top-2 p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+              >
+                <Zap class="w-4 h-4" />
+              </button>
+            {/if}
+          </div>
+
+          {#if connectionError}
+            <p
+              class="text-xs text-rose-500 font-bold text-center bg-rose-500/10 py-1 rounded"
+            >
+              {connectionError}
+            </p>
+          {/if}
+
+          <div class="grid grid-cols-2 gap-3">
+            <button
+              onclick={toggleScanner}
+              class="p-4 rounded-xl bg-zinc-950 border border-white/5 hover:border-orange-500/30 transition-colors flex flex-col items-center gap-2 group"
+            >
+              <div
+                class="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center group-hover:bg-orange-600 transition-colors"
+              >
+                <QrCode class="w-5 h-5 text-white" />
+              </div>
+              <span class="text-[10px] font-bold uppercase text-zinc-500"
+                >Scan QR</span
+              >
+            </button>
             <button
               onclick={handleConnect}
-              class="absolute right-2 top-2 p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+              disabled={!wcUri || isConnecting}
+              class="p-4 rounded-xl bg-orange-600 hover:bg-orange-700 transition-colors flex flex-col items-center gap-2 text-white shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:grayscale"
             >
-              <Zap class="w-4 h-4" />
+              <div
+                class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
+              >
+                <Zap class="w-5 h-5 text-white" />
+              </div>
+              <span class="text-[10px] font-bold uppercase">Connect</span>
             </button>
-          {/if}
-        </div>
-
-        {#if connectionError}
-          <p
-            class="text-xs text-rose-500 font-bold text-center bg-rose-500/10 py-1 rounded"
-          >
-            {connectionError}
-          </p>
+          </div>
+        {:else}
+          <!-- QR Scanner Section -->
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-white">Scan QR Code</h3>
+              <button
+                onclick={toggleScanner}
+                class="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors"
+              >
+                <X class="w-4 h-4 text-zinc-400" />
+              </button>
+            </div>
+            <QRScanner onScan={handleQRScan} />
+          </div>
         {/if}
-
-        <div class="grid grid-cols-2 gap-3">
-          <button
-            onclick={handlePaste}
-            class="p-4 rounded-xl bg-zinc-950 border border-white/5 hover:border-orange-500/30 transition-colors flex flex-col items-center gap-2 group"
-          >
-            <div
-              class="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center group-hover:bg-orange-600 transition-colors"
-            >
-              <RefreshCw class="w-5 h-5 text-white" />
-            </div>
-            <span class="text-[10px] font-bold uppercase text-zinc-500"
-              >Paste</span
-            >
-          </button>
-          <button
-            onclick={handleConnect}
-            disabled={!wcUri || isConnecting}
-            class="p-4 rounded-xl bg-orange-600 hover:bg-orange-700 transition-colors flex flex-col items-center gap-2 text-white shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:grayscale"
-          >
-            <div
-              class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
-            >
-              <Zap class="w-5 h-5 text-white" />
-            </div>
-            <span class="text-[10px] font-bold uppercase">Connect</span>
-          </button>
-        </div>
       </div>
     </div>
 
