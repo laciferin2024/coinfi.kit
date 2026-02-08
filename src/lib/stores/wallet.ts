@@ -12,6 +12,7 @@ import type {
   TransactionStatus,
   ExternalRequest
 } from '$lib/types';
+import { fetchBalances } from '$lib/utils/blockchain-utils';
 
 // Network Constants
 export const GLOBAL_NETWORK: Network = {
@@ -153,6 +154,13 @@ function createWalletStore() {
             isLocked: false,
             lastActive: new Date()
           }));
+
+          // Refresh balances
+          const balances = await fetchBalances(address);
+          if (balances) {
+            walletStore.updatePortfolio(balances);
+          }
+
           return { success: true, address };
         }
         console.warn('[Store] No accounts returned from Porto');
@@ -210,6 +218,12 @@ function createWalletStore() {
             lastActive: new Date()
           }));
           console.log('[Store] Porto connection restored:', address);
+
+          // Refresh balances
+          fetchBalances(address).then(balances => {
+            if (balances) walletStore.updatePortfolio(balances);
+          });
+
           return true;
         }
       } catch (e) {
@@ -260,7 +274,26 @@ function createWalletStore() {
       if (!network) return false;
       safeSetItem('wallet_active_network_id', networkId);
       update(s => ({ ...s, activeNetworkId: networkId }));
+
+      // Also refresh balances when network changes (optional, but good practice to keep fresh)
+      const address = get({ subscribe }).address;
+      if (address) {
+        fetchBalances(address).then(balances => {
+          if (balances) walletStore.updatePortfolio(balances);
+        });
+      }
       return true;
+    },
+
+    // Refresh Balances explicitly
+    refreshBalances: async () => {
+      const state = get({ subscribe });
+      if (state.address) {
+        const balances = await fetchBalances(state.address);
+        if (balances) {
+          walletStore.updatePortfolio(balances);
+        }
+      }
     },
 
     // Portfolio
