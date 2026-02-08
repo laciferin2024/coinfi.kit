@@ -194,7 +194,8 @@ export const amoyTestnet = defineChain({
 const CHAIN_MAP = new Map<number, Chain>([
   [titanAITestnet.id, titanAITestnet],
   [amoyTestnet.id, amoyTestnet],
-  [sepolia.id, sepolia]
+  [sepolia.id, sepolia],
+  [arcTestnet.id, arcTestnet]
 ])
 
 /**
