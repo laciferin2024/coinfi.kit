@@ -92,6 +92,7 @@ export const DAPPS: Protocol[] = [
     networks: ["Ethereum", "Optimism", "Base"],
     domain: "likwid.fi",
     auditStatus: "safe",
+    popupUrl: "/dapps/swap",
   },
   {
     id: "disperse-app",
@@ -105,5 +106,6 @@ export const DAPPS: Protocol[] = [
     networks: ["Ethereum", "Optimism", "Base"],
     domain: "disperse.app",
     auditStatus: "safe",
+    popupUrl: "/dapps/disperse",
   },
 ];

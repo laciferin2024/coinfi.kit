@@ -5,8 +5,6 @@
   import Nav from "$lib/components/layout/nav.svelte"
   import { walletStore } from "$lib/stores/wallet"
   import type { Snippet } from "svelte"
-  import DAppBrowser from "$lib/components/dapps/DAppBrowser.svelte"
-  import { DAPPS } from "$lib/data/dapps"
   import AIGuardModal from "$lib/components/ui/AIGuardModal.svelte"
   import WalletConnectModal from "$lib/components/ui/WalletConnectModal.svelte"
   import { wcStore, initWalletConnect } from "$lib/walletconnect"
@@ -125,16 +123,6 @@
       {/if}
 
       <!-- Global Modals & Overlays inside Phone Frame -->
-      {#if $walletStore.activeBrowserDAppId}
-        {@const activeDapp =
-          $walletStore.activeBrowserDAppId === "custom"
-            ? $walletStore.activeCustomDApp
-            : DAPPS.find((d) => d.id === $walletStore.activeBrowserDAppId)}
-        {#if activeDapp}
-          <DAppBrowser dapp={activeDapp} />
-        {/if}
-      {/if}
-
       {#if $walletStore.externalRequest}
         <AIGuardModal onClose={() => {}} />
       {/if}

@@ -90,4 +90,5 @@ export interface Protocol {
   auditStatus: 'safe' | 'caution' | 'danger' | 'unknown';
   url: string;
   domain: string;
+  popupUrl?: string; // Internal route for popup if applicable
 }

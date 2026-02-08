@@ -88,8 +88,6 @@ export interface WalletState {
   lastActive: Date;
   recentDapps: Array<{ id: string; lastUsed: number }>;
   connectedDapps: DAppSession[];
-  activeBrowserDAppId: string | null;
-  activeCustomDApp: CustomDApp | null;
   externalRequest: ExternalRequest | null;
 }
 
@@ -116,8 +114,6 @@ function createInitialState(): WalletState {
     lastActive: new Date(),
     recentDapps: safeGetJSON<Array<{ id: string; lastUsed: number }>>('wallet_recent_dapps', []),
     connectedDapps: safeGetJSON<DAppSession[]>('wallet_connected_dapps', []),
-    activeBrowserDAppId: null,
-    activeCustomDApp: null,
     externalRequest: null,
   };
 }
@@ -400,42 +396,15 @@ function createWalletStore() {
     },
 
     // DApps
-    openDAppBrowser: (id: string) => {
+    trackDAppUsage: (id: string) => {
       update(s => {
         const now = Date.now();
         const existing = s.recentDapps.filter(d => d.id !== id);
         const updatedRecents = [{ id, lastUsed: now }, ...existing].slice(0, 10);
         safeSetJSON('wallet_recent_dapps', updatedRecents);
-        return { ...s, activeBrowserDAppId: id, recentDapps: updatedRecents, lastActive: new Date() };
+        return { ...s, recentDapps: updatedRecents, lastActive: new Date() };
       });
     },
-
-    openCustomUrl: (url: string) => {
-      let cleanUrl = url.trim();
-      if (!/^https?:\/\//i.test(cleanUrl)) {
-        cleanUrl = `https://${cleanUrl}`;
-      }
-      let domain = 'custom-site';
-      try {
-        domain = new URL(cleanUrl).hostname;
-      } catch { /* Fallback */ }
-
-      const customDApp: CustomDApp = {
-        name: domain.split('.')[0].toUpperCase(),
-        icon: '🌐',
-        url: cleanUrl,
-        domain
-      };
-      update(s => ({ ...s, activeBrowserDAppId: 'custom', activeCustomDApp: customDApp, lastActive: new Date() }));
-    },
-
-    closeDAppBrowser: () => update(s => ({
-      ...s,
-      activeBrowserDAppId: null,
-      activeCustomDApp: null,
-      lastActive: new Date(),
-      externalRequest: null
-    })),
 
     connectDapp: (dappInfo: Omit<DAppSession, 'sessionId' | 'lastUsed'>) => {
       update(s => {

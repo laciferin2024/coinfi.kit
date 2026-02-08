@@ -372,15 +372,13 @@
               <button
                 class="text-left p-4 rounded-3xl bg-zinc-900/50 border border-white/5 hover:bg-zinc-800 hover:border-white/10 transition-all group relative overflow-hidden"
                 onclick={() => {
-                  if (dapp.id === "disperse-app") {
-                    window.open(
-                      "/dapps/disperse",
-                      "_blank",
-                      "width=480,height=800",
-                    )
-                  } else {
-                    walletStore.openDAppBrowser(dapp.id)
-                  }
+                  walletStore.trackDAppUsage(dapp.id)
+                  const url = dapp.popupUrl || dapp.url
+                  window.open(
+                    url,
+                    "_blank",
+                    "width=480,height=800,menubar=no,toolbar=no,location=no,status=no",
+                  )
                 }}
               >
                 <div
