@@ -4,6 +4,7 @@ import nodeAdapter from '@sveltejs/adapter-node';
 
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { execSync } from "child_process"
+import path from "path"
 
 
 let adapter = autoAdapters
@@ -18,7 +19,7 @@ switch (process.env.ADAPTER_MODE) {
 }
 
 
-let tag;
+export let tag;
 try {
   // Silence git stderr to avoid noisy "fatal: No names found" when no tags exist.
   tag = execSync(
@@ -63,6 +64,18 @@ const config = {
 		// See https://svelte.dev/docs/kit/adapters for more information about adapters.
 		// adapter: adapter()
 		adapter: adapter(),
+		alias: {
+			"@": path.resolve("./"),
+			"@public": path.resolve("./public"),
+			"@src": path.resolve("./src"),
+			"@lib": path.resolve("./src/lib"),
+			"@config": path.resolve("./src/config"),
+			"@components": path.resolve("./src/lib/components"),
+			"@routes": path.resolve("./src/routes"),
+			"@stores": path.resolve("./src/lib/stores"),
+			"@utils": path.resolve("./src/lib/utils"),
+			"@types": path.resolve("./src/lib/types"),
+		},
 	},
 
 	extensions: ['.svelte', '.svx']
