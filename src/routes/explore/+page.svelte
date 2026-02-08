@@ -12,6 +12,7 @@
     Check,
     X,
     Zap,
+    Keyboard,
   } from "lucide-svelte"
 
   import { walletStore } from "$lib/stores/wallet"
@@ -24,11 +25,13 @@
     disconnectSession,
   } from "$lib/walletconnect"
   import Button from "$lib/components/ui/Button.svelte"
+  import QRScanner from "$lib/components/ui/QRScanner.svelte"
   import { DAPPS } from "$lib/data/dapps"
 
   let wcUri = $state("")
   let isPairing = $state(false)
   let error = $state("")
+  let mode = $state<"paste" | "scan">("paste")
 
   onMount(() => {
     if (browser) {
@@ -81,6 +84,12 @@
 
   async function handleDisconnect(topic: string) {
     await disconnectSession(topic)
+  }
+
+  async function handleQRScan(uri: string) {
+    console.log("[Explore] QR Scanned:", uri)
+    wcUri = uri
+    await handlePair()
   }
 </script>
 
@@ -172,36 +181,80 @@
           </div>
         </div>
 
-        <!-- Pair Input -->
+        <!-- WalletConnect Interface -->
         <div
           class="space-y-4 p-6 rounded-3xl bg-zinc-900/50 border border-white/5"
         >
-          <label
-            class="text-[10px] font-bold uppercase text-zinc-500 tracking-widest flex items-center gap-2"
+          <!-- Mode Toggle -->
+          <div
+            class="flex gap-2 p-1 bg-black rounded-xl border border-white/10"
           >
-            <QrCode class="w-3 h-3" /> Paste WalletConnect URI
-          </label>
-          <div class="flex gap-3">
-            <input
-              type="text"
-              placeholder="wc:..."
-              bind:value={wcUri}
-              class="flex-1 px-4 py-4 bg-black border border-white/10 rounded-2xl text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 font-mono"
-            />
-            <Button
-              onclick={handlePair}
-              disabled={isPairing}
-              class="px-6 rounded-2xl bg-gradient-to-r from-orange-600 to-rose-600 text-white font-black uppercase text-xs"
+            <button
+              onclick={() => (mode = "paste")}
+              class="flex-1 py-2.5 px-4 rounded-lg transition-all flex items-center justify-center gap-2 {mode ===
+              'paste'
+                ? 'bg-orange-600 text-white shadow-lg'
+                : 'text-zinc-500 hover:text-white'}"
             >
-              {#if isPairing}
-                <span class="animate-spin">⏳</span>
-              {:else}
-                Pair
-              {/if}
-            </Button>
+              <Keyboard class="w-4 h-4" />
+              <span class="text-xs font-bold uppercase">Paste</span>
+            </button>
+            <button
+              onclick={() => (mode = "scan")}
+              class="flex-1 py-2.5 px-4 rounded-lg transition-all flex items-center justify-center gap-2 {mode ===
+              'scan'
+                ? 'bg-orange-600 text-white shadow-lg'
+                : 'text-zinc-500 hover:text-white'}"
+            >
+              <QrCode class="w-4 h-4" />
+              <span class="text-xs font-bold uppercase">Scan</span>
+            </button>
           </div>
-          {#if error}
-            <p class="text-xs text-rose-400">{error}</p>
+
+          {#if mode === "paste"}
+            <!-- Paste Mode -->
+            <div class="space-y-3">
+              <label
+                class="text-[10px] font-bold uppercase text-zinc-500 tracking-widest flex items-center gap-2"
+              >
+                <Keyboard class="w-3 h-3" /> Paste WalletConnect URI
+              </label>
+              <div class="flex gap-3">
+                <input
+                  type="text"
+                  placeholder="wc:..."
+                  bind:value={wcUri}
+                  class="flex-1 px-4 py-4 bg-black border border-white/10 rounded-2xl text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 font-mono"
+                />
+                <Button
+                  onclick={handlePair}
+                  disabled={isPairing}
+                  class="px-6 rounded-2xl bg-gradient-to-r from-orange-600 to-rose-600 text-white font-black uppercase text-xs"
+                >
+                  {#if isPairing}
+                    <span class="animate-spin">⏳</span>
+                  {:else}
+                    Pair
+                  {/if}
+                </Button>
+              </div>
+              {#if error}
+                <p class="text-xs text-rose-400">{error}</p>
+              {/if}
+            </div>
+          {:else}
+            <!-- Scan Mode -->
+            <div class="space-y-3">
+              <label
+                class="text-[10px] font-bold uppercase text-zinc-500 tracking-widest flex items-center gap-2"
+              >
+                <QrCode class="w-3 h-3" /> Scan QR Code
+              </label>
+              <QRScanner
+                onScan={handleQRScan}
+                onError={(err) => (error = err)}
+              />
+            </div>
           {/if}
         </div>
 
