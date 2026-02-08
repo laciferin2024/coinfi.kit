@@ -141,36 +141,6 @@
   {:else if isScanning}
     <!-- Scanner Active -->
     <div class="space-y-4">
-      <!-- Scanner Container -->
-      <div
-        class="relative rounded-2xl overflow-hidden border-2 border-orange-500/30 bg-black"
-      >
-        <div id="qr-reader" bind:this={scannerElement}></div>
-
-        <!-- Scan Overlay -->
-        <div
-          class="absolute inset-0 pointer-events-none flex items-center justify-center"
-        >
-          <div
-            class="w-64 h-64 border-2 border-orange-500 rounded-2xl shadow-[0_0_20px_rgba(249,115,22,0.5)]"
-          >
-            <!-- Corner indicators -->
-            <div
-              class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-orange-500 rounded-tl-2xl"
-            ></div>
-            <div
-              class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-orange-500 rounded-tr-2xl"
-            ></div>
-            <div
-              class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-orange-500 rounded-bl-2xl"
-            ></div>
-            <div
-              class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-orange-500 rounded-br-2xl"
-            ></div>
-          </div>
-        </div>
-      </div>
-
       <!-- Instructions -->
       <div
         class="flex items-center gap-2 px-4 py-3 bg-zinc-900/50 rounded-xl border border-white/5"
@@ -182,6 +152,38 @@
       </div>
     </div>
   {/if}
+
+  <!-- Scanner Container - Always in DOM -->
+  <div
+    class="relative rounded-2xl overflow-hidden border-2 border-orange-500/30 bg-black {isScanning
+      ? ''
+      : 'hidden'}"
+  >
+    <div id="qr-reader" bind:this={scannerElement}></div>
+
+    <!-- Scan Overlay -->
+    <div
+      class="absolute inset-0 pointer-events-none flex items-center justify-center"
+    >
+      <div
+        class="w-64 h-64 border-2 border-orange-500 rounded-2xl shadow-[0_0_20px_rgba(249,115,22,0.5)]"
+      >
+        <!-- Corner indicators -->
+        <div
+          class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-orange-500 rounded-tl-2xl"
+        ></div>
+        <div
+          class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-orange-500 rounded-tr-2xl"
+        ></div>
+        <div
+          class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-orange-500 rounded-bl-2xl"
+        ></div>
+        <div
+          class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-orange-500 rounded-br-2xl"
+        ></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <style>
