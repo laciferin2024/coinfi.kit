@@ -50,6 +50,47 @@ export const sepolia = defineChain({
   },
   testnet: true,
 });
+export const arcTestnet = defineChain({
+  id: 5042002,
+  name: "Arc Testnet",
+  nativeCurrency: {
+    decimals: 6,
+    name: "USDC",
+    symbol: "USDC",
+    faucet: [
+      "https://docs.arc.network/arc/tutorials/access-usdc-crosschain#arc",
+    ],
+  },
+  rpcUrls: {
+    default: {
+      http: [
+        "https://arc-testnet.drpc.org"
+      ],
+      webSocket: [
+        "wss://arc-testnet.drpc.org"
+      ]
+    },
+    public: {
+      http: [
+        "https://arc-testnet.drpc.org"
+      ],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Arc Explorer",
+      url: "https://testnet.arcscan.app",
+    },
+  },
+  testnet: true,
+
+  custom: {
+    tokens: {
+      usdc: {
+        address: "0x3600000000000000000000000000000000000000",
+      }
+    }
+  });
 
 export const titanAITestnet = defineChain({
   id: 1020352220,
