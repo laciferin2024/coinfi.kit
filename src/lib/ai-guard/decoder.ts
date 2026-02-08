@@ -60,6 +60,19 @@ export function isUnlimitedApproval(amount: bigint): boolean {
 }
 
 /**
+ * Normalize a value to BigInt (handles hex with/without 0x prefix and decimal strings)
+ */
+function normalizeValue(value: string | undefined): bigint {
+  if (!value) return BigInt(0);
+  // If it looks like hex (contains letters a-f), ensure 0x prefix
+  if (/^[0-9a-fA-F]+$/.test(value) && /[a-fA-F]/.test(value)) {
+    return BigInt('0x' + value);
+  }
+  // If it already has 0x prefix or is pure decimal
+  return BigInt(value);
+}
+
+/**
  * Decode a transaction using known ABIs
  */
 export function decodeTransaction(
@@ -69,7 +82,7 @@ export function decodeTransaction(
 ): DecodedTransaction {
   // Handle native ETH transfer (no data)
   if (!data || data === '0x' || data === '0x0') {
-    const ethValue = value ? formatEther(BigInt(value)) : '0';
+    const ethValue = value ? formatEther(normalizeValue(value)) : '0';
     return {
       method: 'native_transfer',
       methodId: '0x',

@@ -107,6 +107,20 @@
     return null
   })
 
+  // Hyper Mode Bypass: If hyper mode is disabled, skip AI Guard and directly trigger Porto
+  $effect(() => {
+    if (request && !$walletStore.isHyperMode && status === "simulating") {
+      // Hyper mode is disabled - bypass AI Guard entirely
+      console.log("[AIGuard] Hyper Mode disabled - bypassing AI Guard analysis")
+      isAutoApproving = true
+      status = "approving"
+      // Immediately trigger Porto signing
+      setTimeout(() => {
+        handleApprove()
+      }, 300)
+    }
+  })
+
   function handleGuardComplete(v: RiskLevel, response: AIGuardResponse | null) {
     verdict = v
     guardResponse = response
@@ -365,42 +379,77 @@
       <div class="flex-1 overflow-y-auto p-6 space-y-6">
         {#if status === "simulating" || status === "ready" || isAutoApproving}
           <div class="space-y-4">
-            <div class="flex items-center justify-between px-2">
-              <h4
-                class="text-[10px] font-black uppercase text-zinc-500 tracking-widest flex items-center gap-2"
-              >
-                <Shield class="w-3.5 h-3.5" /> AI Guard Engine
-              </h4>
-              <div
-                class="flex items-center gap-1.5 px-2 py-0.5 rounded {isAutoApproving
-                  ? 'bg-emerald-500/20 text-emerald-300'
-                  : 'bg-emerald-500/10 text-emerald-400'} text-[8px] font-black uppercase"
-              >
-                <span
-                  class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
-                ></span>
-                {isAutoApproving ? "Safe • Auto-signing" : "Active"}
-              </div>
-            </div>
-            <GuardConsole
-              transactionData={transactionData()}
-              onComplete={handleGuardComplete}
-            />
-
-            {#if isAutoApproving}
-              <!-- Auto-approve indicator -->
-              <div
-                class="flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
-                transition:fly={{ y: 10, duration: 300 }}
-              >
-                <div
-                  class="w-5 h-5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin"
-                ></div>
-                <p
-                  class="text-xs text-emerald-400 font-bold uppercase tracking-widest"
+            {#if $walletStore.isHyperMode}
+              <!-- Show AI Guard when Hyper Mode is enabled -->
+              <div class="flex items-center justify-between px-2">
+                <h4
+                  class="text-[10px] font-black uppercase text-zinc-500 tracking-widest flex items-center gap-2"
                 >
-                  Low Risk → Auto-signing with Passkey...
-                </p>
+                  <Shield class="w-3.5 h-3.5" /> AI Guard Engine
+                </h4>
+                <div
+                  class="flex items-center gap-1.5 px-2 py-0.5 rounded {isAutoApproving
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : 'bg-emerald-500/10 text-emerald-400'} text-[8px] font-black uppercase"
+                >
+                  <span
+                    class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
+                  ></span>
+                  {isAutoApproving ? "Safe • Auto-signing" : "Active"}
+                </div>
+              </div>
+              <GuardConsole
+                transactionData={transactionData()}
+                onComplete={handleGuardComplete}
+              />
+
+              {#if isAutoApproving}
+                <!-- Auto-approve indicator -->
+                <div
+                  class="flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
+                  transition:fly={{ y: 10, duration: 300 }}
+                >
+                  <div
+                    class="w-5 h-5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin"
+                  ></div>
+                  <p
+                    class="text-xs text-emerald-400 font-bold uppercase tracking-widest"
+                  >
+                    Low Risk → Auto-signing with Passkey...
+                  </p>
+                </div>
+              {/if}
+            {:else}
+              <!-- Hyper Mode is disabled - show bypass message -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between px-2">
+                  <h4
+                    class="text-[10px] font-black uppercase text-zinc-500 tracking-widest flex items-center gap-2"
+                  >
+                    <Shield class="w-3.5 h-3.5 opacity-50" /> AI Guard
+                  </h4>
+                  <div
+                    class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-800 text-zinc-500 text-[8px] font-black uppercase"
+                  >
+                    <span class="w-1.5 h-1.5 rounded-full bg-zinc-600"></span>
+                    Disabled
+                  </div>
+                </div>
+
+                <!-- Direct signing indicator -->
+                <div
+                  class="flex items-center justify-center gap-3 py-6 px-4 rounded-xl bg-zinc-900/50 border border-white/5"
+                  transition:fly={{ y: 10, duration: 300 }}
+                >
+                  <div
+                    class="w-5 h-5 rounded-full border-2 border-zinc-500 border-t-transparent animate-spin"
+                  ></div>
+                  <p
+                    class="text-xs text-zinc-400 font-bold uppercase tracking-widest"
+                  >
+                    Direct Signing with Passkey...
+                  </p>
+                </div>
               </div>
             {/if}
           </div>
