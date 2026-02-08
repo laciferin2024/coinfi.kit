@@ -44,6 +44,15 @@
   let guardResponse = $state<AIGuardResponse | null>(null)
   let showChat = $state(false)
   let isAutoApproving = $state(false) // Track auto-approval for low risk
+  let countdown = $state(0)
+
+  function startCountdown(seconds: number) {
+    countdown = seconds
+    const interval = setInterval(() => {
+      countdown -= 1
+      if (countdown <= 0) clearInterval(interval)
+    }, 1000)
+  }
 
   // Extract transaction data from request
   let transactionData = $derived(() => {
@@ -138,6 +147,11 @@
         network: $walletStore.activeNetworkId,
         chainId: 0,
       })
+    } else if (v === "high" || v === "medium") {
+      // Medium/High risk - Time-lock approval
+      // This forces the user to wait before overriding
+      status = "ready"
+      startCountdown(10)
     } else if (v === "low") {
       // Auto-approve for low risk transactions
       isAutoApproving = true
@@ -146,7 +160,7 @@
         handleApprove()
       }, 800)
     } else {
-      // Medium/High risk - require manual approval
+      // Fallback
       status = "ready"
     }
   }
@@ -525,10 +539,18 @@
           </Button>
           <Button
             onclick={handleApprove}
-            disabled={verdict === "blocked"}
-            class="col-span-3 h-14 rounded-2xl bg-orange-600 hover:bg-orange-700 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-orange-500/20 disabled:shadow-none transition-all"
+            disabled={verdict === "blocked" || countdown > 0}
+            class="col-span-3 h-14 rounded-2xl {countdown > 0
+              ? 'bg-zinc-800 text-zinc-500 cursor-wait'
+              : 'bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20'} disabled:bg-zinc-800 disabled:text-zinc-600 disabled:shadow-none font-black italic uppercase tracking-widest text-[10px] transition-all"
           >
-            {verdict === "blocked" ? "Action Blocked" : "Approve Interaction →"}
+            {#if verdict === "blocked"}
+              Action Blocked
+            {:else if countdown > 0}
+              Wait {countdown}s to Override...
+            {:else}
+              Override Risk & Sign →
+            {/if}
           </Button>
         </div>
       {/if}
