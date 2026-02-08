@@ -17,29 +17,41 @@
   let error = $state<string | null>(null)
   let hasPermission = $state(false)
 
-  onMount(async () => {
+  async function startScanner() {
+    isLoading = true
+    error = null
+
     try {
-      // Create scanner instance
-      html5QrCode = new Html5Qrcode("qr-reader")
+      // Ensure previous instance is stopped
+      if (html5QrCode && isScanning) {
+        await stopScanning()
+      }
+
+      // Create new instance if needed
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("qr-reader")
+      }
+
+      // Check for cameras first (triggers permission)
+      const cameras = await Html5Qrcode.getCameras()
+      if (!cameras || cameras.length === 0) {
+        throw new Error("No cameras found on this device.")
+      }
 
       // Start scanning
       await html5QrCode.start(
-        { facingMode: "environment" }, // Use back camera on mobile
+        { facingMode: "environment" },
         {
-          fps: 10, // Scans per second
-          qrbox: { width: 250, height: 250 }, // Scanning area
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
         },
         (decodedText) => {
-          // Success callback
           console.log("[QR Scanner] Scanned:", decodedText)
           onScan(decodedText)
-
-          // Stop scanning after successful scan
           stopScanning()
         },
         (errorMessage) => {
-          // Error callback (not critical - just means no QR found in frame)
-          // We can ignore these
+          // Ignore parse errors, scanning is working
         },
       )
 
@@ -48,16 +60,36 @@
       hasPermission = true
     } catch (err: any) {
       console.error("[QR Scanner] Failed to start:", err)
-      const errorMsg =
-        err?.message || "Failed to access camera. Please check permissions."
+
+      // Handle specifically known errors
+      let errorMsg = "Failed to access camera."
+
+      if (
+        err?.name === "NotAllowedError" ||
+        err?.message?.includes("permission")
+      ) {
+        errorMsg = "Camera permission denied. Please allow access."
+      } else if (
+        err?.name === "NotFoundError" ||
+        err?.message?.includes("No cameras")
+      ) {
+        errorMsg = "No camera found on this device."
+      } else if (err?.message) {
+        errorMsg = err.message
+      }
+
       error = errorMsg
       isLoading = false
       onError?.(errorMsg)
     }
+  }
+
+  onMount(() => {
+    startScanner()
   })
 
   async function stopScanning() {
-    if (html5QrCode && isScanning) {
+    if (html5QrCode && (isScanning || html5QrCode.isScanning)) {
       try {
         await html5QrCode.stop()
         isScanning = false
@@ -68,8 +100,13 @@
   }
 
   onDestroy(async () => {
-    await stopScanning()
-    html5QrCode = null
+    if (html5QrCode) {
+      if (isScanning) {
+        await stopScanning()
+      }
+      html5QrCode.clear()
+      html5QrCode = null
+    }
   })
 </script>
 
@@ -87,13 +124,19 @@
   {:else if error}
     <!-- Error State -->
     <div
-      class="flex flex-col items-center justify-center py-16 space-y-4 bg-rose-500/5 rounded-2xl border border-rose-500/20"
+      class="flex flex-col items-center justify-center py-12 space-y-4 bg-rose-500/5 rounded-2xl border border-rose-500/20"
     >
       <AlertCircle class="w-12 h-12 text-rose-400" />
       <div class="text-center space-y-1 px-6">
-        <p class="text-sm font-bold text-rose-400">Camera Access Failed</p>
+        <p class="text-sm font-bold text-rose-400">Camera Error</p>
         <p class="text-xs text-zinc-500">{error}</p>
       </div>
+      <button
+        onclick={startScanner}
+        class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold uppercase tracking-wide transition-colors"
+      >
+        Retry Access
+      </button>
     </div>
   {:else if isScanning}
     <!-- Scanner Active -->
@@ -145,6 +188,7 @@
   /* Override html5-qrcode default styles */
   :global(#qr-reader) {
     border: none !important;
+    width: 100%;
   }
 
   :global(#qr-reader video) {

@@ -31,7 +31,7 @@
   let wcUri = $state("")
   let isPairing = $state(false)
   let error = $state("")
-  let mode = $state<"paste" | "scan">("paste")
+  let mode = $state<"paste" | "scan">("scan") // Default to scan mode
 
   onMount(() => {
     if (browser) {
