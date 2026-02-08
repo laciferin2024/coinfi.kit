@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte"
   import { Html5Qrcode } from "html5-qrcode"
-  import { Camera, AlertCircle } from "lucide-svelte"
+  import { Camera, AlertCircle, RotateCcw } from "lucide-svelte"
 
   interface Props {
     onScan: (result: string) => void
@@ -16,27 +16,34 @@
   let isLoading = $state(true)
   let error = $state<string | null>(null)
   let hasPermission = $state(false)
+  let cameras = $state<{ id: string; label: string }[]>([])
+  let currentCameraIndex = $state(0)
 
-  async function startScanner() {
+  async function startScanner(cameraId?: string) {
     isLoading = true
     error = null
 
     try {
-      // Ensure previous instance is stopped
-      if (html5QrCode && isScanning) {
-        await stopScanning()
-      }
-
-      // Create new instance if needed
+      // Create instance if needed
       if (!html5QrCode) {
         html5QrCode = new Html5Qrcode("qr-reader")
       }
 
-      // Check for cameras first (triggers permission)
-      const cameras = await Html5Qrcode.getCameras()
-      if (!cameras || cameras.length === 0) {
-        throw new Error("No cameras found on this device.")
+      // Ensure previous instance is stopped
+      if (html5QrCode.isScanning) {
+        await html5QrCode.stop()
       }
+
+      // Fetch cameras if not already fetched
+      if (cameras.length === 0) {
+        const availableCameras = await Html5Qrcode.getCameras()
+        if (!availableCameras || availableCameras.length === 0) {
+          throw new Error("No cameras found on this device.")
+        }
+        cameras = availableCameras
+      }
+
+      const targetCamera = cameraId || cameras[currentCameraIndex].id
 
       // Show the element first
       isScanning = true
@@ -44,7 +51,7 @@
 
       // Start scanning
       await html5QrCode.start(
-        { facingMode: "environment" },
+        targetCamera,
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
@@ -86,6 +93,13 @@
       isLoading = false
       onError?.(errorMsg)
     }
+  }
+
+  async function switchCamera() {
+    if (cameras.length <= 1) return
+
+    currentCameraIndex = (currentCameraIndex + 1) % cameras.length
+    await startScanner(cameras[currentCameraIndex].id)
   }
 
   onMount(() => {
@@ -146,7 +160,7 @@
         <p class="text-xs text-zinc-500">{error}</p>
       </div>
       <button
-        onclick={startScanner}
+        onclick={() => startScanner()}
         class="px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 text-xs font-bold uppercase tracking-wide transition-colors"
       >
         Retry Access
@@ -183,7 +197,17 @@
 
       <!-- Bottom UI Hint -->
       <div class="absolute bottom-10 left-0 right-0 flex justify-center px-6">
-        <div class="flex flex-col items-center gap-3">
+        <div class="flex flex-col items-center gap-4">
+          {#if cameras.length > 1}
+            <button
+              onclick={switchCamera}
+              class="p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full border border-white/20 transition-all active:scale-95 pointer-events-auto"
+              title="Switch Camera"
+            >
+              <RotateCcw class="w-5 h-5 text-white" />
+            </button>
+          {/if}
+
           <div
             class="flex items-center gap-2 px-4 py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10"
           >
