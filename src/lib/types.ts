@@ -36,12 +36,12 @@ export interface NFTAsset {
 export interface Activity {
   id: string;
   hash?: string;
-  type: 'send' | 'receive' | 'swap';
-  amount: string;
-  symbol: string;
+  type: 'send' | 'receive' | 'swap' | 'approve' | 'blocked' | 'interacted';
+  amount?: string;
+  symbol?: string;
   address: string;
   timestamp: number;
-  status: 'completed' | 'pending' | 'failed';
+  status: 'completed' | 'pending' | 'failed' | 'blocked';
   network: string;
   chainId: number;
   explorerUrl?: string;

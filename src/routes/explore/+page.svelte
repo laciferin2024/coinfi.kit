@@ -318,7 +318,17 @@
             {#each DAPPS as dapp}
               <button
                 class="text-left p-4 rounded-3xl bg-zinc-900/50 border border-white/5 hover:bg-zinc-800 hover:border-white/10 transition-all group relative overflow-hidden"
-                onclick={() => walletStore.openDAppBrowser(dapp.id)}
+                onclick={() => {
+                  if (dapp.id === "disperse-app") {
+                    window.open(
+                      "/dapps/disperse",
+                      "_blank",
+                      "width=480,height=800",
+                    )
+                  } else {
+                    walletStore.openDAppBrowser(dapp.id)
+                  }
+                }}
               >
                 <div
                   class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"

@@ -17,7 +17,7 @@
   let { children }: Props = $props()
 
   // Routes that should show the bottom nav
-  const authenticatedRoutes = ["/home", "/activity", "/settings", "/explore"]
+  const authenticatedRoutes = ["/home", "/assets", "/activity", "/explore"]
 
   let showNav = $derived(
     authenticatedRoutes.some((route) => $page.url.pathname.startsWith(route)),
@@ -58,6 +58,24 @@
         icon: prop.params.proposer.metadata.icons[0],
       } as any)
     }
+  })
+
+  // Listen for DApp BroadcastChannel messages (Demo)
+  onMount(() => {
+    const channel = new BroadcastChannel("dapp-channel")
+    channel.onmessage = (event) => {
+      console.log("[Layout] Received DApp Message:", event.data)
+      const data = event.data
+      if (data.type === "eth_sendTransaction") {
+        walletStore.setExternalRequest({
+          id: Date.now().toString(),
+          type: "eth_sendTransaction",
+          payload: data.payload,
+          origin: data.origin,
+        })
+      }
+    }
+    return () => channel.close()
   })
 </script>
 

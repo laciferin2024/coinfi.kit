@@ -8,6 +8,7 @@
     pairWithUri,
     disconnectAllSessions,
   } from "$lib/walletconnect"
+  import ConnectWidget from "$lib/components/wallet/ConnectWidget.svelte"
 
   let wcUri = $state("")
   let isConnecting = $state(false)
@@ -69,6 +70,9 @@
 
   <!-- Main Content -->
   <main class="flex-1 py-8 space-y-8 pb-24 px-4 overflow-auto">
+    <!-- Connect Wallet Section -->
+    <ConnectWidget />
+
     <!-- WalletConnect Section -->
     <div class="space-y-4">
       <div class="text-center space-y-2">

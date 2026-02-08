@@ -68,6 +68,20 @@
     verdict = v
     guardResponse = response
     status = "ready"
+
+    if (v === "blocked") {
+      walletStore.addActivity({
+        id: crypto.randomUUID(),
+        type: "blocked",
+        status: "blocked",
+        timestamp: Date.now(),
+        address: transactionData()?.to || request?.origin || "Unknown",
+        symbol: "High Risk",
+        amount: "0",
+        network: $walletStore.activeNetworkId,
+        chainId: 0,
+      })
+    }
   }
 
   async function handleApprove() {
@@ -105,7 +119,7 @@
         const message = payload[0]
         result = await porto.provider.request({
           method: "personal_sign",
-          params: [message, address as `0x${string}`],
+          params: [message as any, address as `0x${string}`],
         })
       } else if (request?.type === "eth_sendTransaction") {
         const payload = request.payload as any
@@ -117,10 +131,10 @@
         request?.type === "eth_signTypedData" ||
         request?.type === "eth_signTypedData_v4"
       ) {
-        const params = request.payload as any
+        const params = request.payload as [string, string]
         result = await porto.provider.request({
           method: "eth_signTypedData_v4", // Defaulting to v4 for safety
-          params: params,
+          params: [params[0] as `0x${string}`, params[1]],
         })
       } else {
         throw new Error(`Unsupported method: ${request?.type}`)
@@ -135,6 +149,21 @@
       // Note: approveSession() already handles the response for proposals internally
 
       console.log("[AI Guard] Action Approved > Result:", result)
+
+      // Log Activity
+      walletStore.addActivity({
+        id: crypto.randomUUID(),
+        type: request.type === "eth_sendTransaction" ? "send" : "approve",
+        status: "completed",
+        timestamp: Date.now(),
+        address: transactionData()?.to || request.origin,
+        symbol: "Interaction",
+        amount: transactionData()?.value
+          ? (parseInt(transactionData()?.value || "0") / 1e18).toFixed(4)
+          : "0",
+        network: $walletStore.activeNetworkId,
+        chainId: 0,
+      })
 
       setTimeout(() => {
         walletStore.setExternalRequest(null)

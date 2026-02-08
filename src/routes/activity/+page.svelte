@@ -8,6 +8,9 @@
     Inbox,
     RefreshCw,
     Loader2,
+    ShieldCheck,
+    Check,
+    Zap,
   } from "lucide-svelte"
 
   import {
@@ -188,21 +191,42 @@
               >
                 <div class="flex items-center gap-4 overflow-hidden">
                   <div
-                    class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 {activity.type ===
-                    'send'
+                    class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 {activity.status ===
+                    'blocked'
                       ? 'bg-rose-500/10 text-rose-500'
-                      : 'bg-emerald-500/10 text-emerald-400'}"
+                      : activity.type === 'send'
+                        ? 'bg-rose-500/10 text-rose-500'
+                        : activity.type === 'receive'
+                          ? 'bg-emerald-500/10 text-emerald-400'
+                          : 'bg-indigo-500/10 text-indigo-400'}"
                   >
-                    {#if activity.type === "send"}
+                    {#if activity.status === "blocked"}
+                      <ShieldCheck class="w-5 h-5" />
+                    {:else if activity.type === "send"}
                       <ArrowUpRight class="w-5 h-5" />
-                    {:else}
+                    {:else if activity.type === "receive"}
                       <ArrowDownLeft class="w-5 h-5" />
+                    {:else if activity.type === "approve"}
+                      <Check class="w-5 h-5" />
+                    {:else if activity.type === "interacted"}
+                      <Zap class="w-5 h-5" />
                     {/if}
                   </div>
                   <div class="space-y-0.5 overflow-hidden">
                     <h4 class="font-bold text-sm text-zinc-100 truncate">
-                      {activity.type === "send" ? "Sent" : "Received"}
-                      {activity.symbol}
+                      {#if activity.status === "blocked"}
+                        Blocked Interaction
+                      {:else if activity.type === "send"}
+                        Sent {activity.symbol}
+                      {:else if activity.type === "receive"}
+                        Received {activity.symbol}
+                      {:else if activity.type === "approve"}
+                        Approve {activity.symbol || "Token"}
+                      {:else if activity.type === "interacted"}
+                        Contract Interaction
+                      {:else}
+                        {activity.type}
+                      {/if}
                     </h4>
                     <p class="text-[10px] text-zinc-500 font-mono truncate">
                       {activity.address.slice(0, 10)}...{activity.address.slice(
@@ -213,11 +237,20 @@
                 </div>
                 <div class="text-right space-y-1 shrink-0">
                   <p
-                    class="font-bold font-mono text-sm {activity.type === 'send'
-                      ? 'text-zinc-100'
-                      : 'text-emerald-400'}"
+                    class="font-bold font-mono text-sm {activity.status ===
+                    'blocked'
+                      ? 'text-rose-500'
+                      : activity.type === 'send'
+                        ? 'text-zinc-100'
+                        : 'text-emerald-400'}"
                   >
-                    {activity.type === "send" ? "-" : "+"}{activity.amount}
+                    {#if activity.status === "blocked"}
+                      BLOCKED
+                    {:else if activity.amount}
+                      {activity.type === "send" ? "-" : "+"}{activity.amount}
+                    {:else}
+                      --
+                    {/if}
                   </p>
                   <span
                     class="px-1.5 py-0.5 rounded-md border bg-zinc-800 border-white/5 text-[8px] font-black uppercase text-zinc-500"
