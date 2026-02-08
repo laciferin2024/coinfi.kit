@@ -24,6 +24,7 @@
   } from "$lib/walletconnect"
   import Button from "$lib/components/ui/Button.svelte"
   import QRScanner from "$lib/components/ui/QRScanner.svelte"
+  import { decodeQRFromImage } from "$lib/utils/qr-utils"
 
   interface Props {
     onClose: () => void
@@ -78,12 +79,36 @@
     wcUri = uri
     await handlePair()
   }
+
+  async function handlePaste(event: ClipboardEvent) {
+    const items = event.clipboardData?.items
+    if (!items) return
+
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const blob = item.getAsFile()
+        if (blob) {
+          error = "Decoding QR code from image..."
+          const decoded = await decodeQRFromImage(blob)
+          if (decoded) {
+            console.log("[WalletConnectModal] QR Decoded from paste:", decoded)
+            wcUri = decoded
+            error = ""
+            await handlePair()
+          } else {
+            error = "No QR code found in pasted image"
+          }
+        }
+      }
+    }
+  }
 </script>
 
 <div
   class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
   role="dialog"
   aria-modal="true"
+  onpaste={handlePaste}
   transition:fade={{ duration: 200 }}
 >
   <div

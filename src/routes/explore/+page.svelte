@@ -26,6 +26,7 @@
   } from "$lib/walletconnect"
   import Button from "$lib/components/ui/Button.svelte"
   import QRScanner from "$lib/components/ui/QRScanner.svelte"
+  import { decodeQRFromImage } from "$lib/utils/qr-utils"
   import { DAPPS } from "$lib/data/dapps"
 
   let wcUri = $state("")
@@ -91,9 +92,32 @@
     wcUri = uri
     await handlePair()
   }
+
+  async function handlePaste(event: ClipboardEvent) {
+    const items = event.clipboardData?.items
+    if (!items) return
+
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const blob = item.getAsFile()
+        if (blob) {
+          error = "Decoding QR code from image..."
+          const decoded = await decodeQRFromImage(blob)
+          if (decoded) {
+            console.log("[Explore] QR Decoded from paste:", decoded)
+            wcUri = decoded
+            error = ""
+            await handlePair()
+          } else {
+            error = "No QR code found in pasted image"
+          }
+        }
+      }
+    }
+  }
 </script>
 
-<div class="min-h-full pb-24">
+<div class="min-h-full pb-24" onpaste={handlePaste}>
   <div class="max-w-7xl mx-auto px-4">
     <!-- Header -->
     <header
